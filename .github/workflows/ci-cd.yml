@@ -73,6 +73,8 @@ jobs:
 
       - name: Deploy user-service application
         run: |
+          pwd # покажет текущую директорию
+          ls # для проверки содержимого
           cd selena-prod
           docker-compose pull user-service
           docker-compose up -d user-service
