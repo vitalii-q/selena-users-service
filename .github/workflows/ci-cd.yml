@@ -17,6 +17,11 @@ jobs:
       contents: read    # Разрешение для чтения содержимого репозитория
 
     steps:
+        # Шаг очистки кэша (если нужно удалить старые кэшированные данные)
+      - name: Clear cache
+        run: |
+            rm -rf ${{ github.workspace }}/.cache
+
       - name: Checkout code
         run: |
           if [ ! -d "selena-prod/user-service/.git" ]; then
