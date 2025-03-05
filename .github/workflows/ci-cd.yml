@@ -77,8 +77,10 @@ jobs:
           ls -a
 
           if [ ! -d "selena-prod/.git" ]; then
-            echo "Cloning the repository..."
-            git clone git@github.com:vitalii-q/selena-devops.git .
+            echo "Initializing the repository and pulling the latest changes..."
+            git init
+            git remote add origin git@github.com:vitalii-q/selena-devops.git
+            git pull origin main
           else
             echo "Repository already exists. Pulling the latest changes..."
             git pull origin main
