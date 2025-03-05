@@ -9,6 +9,10 @@ COPY . ./
 
 RUN go build -o user-service ./main.go
 
+# Downlouding variables from .env
+RUN go mod tidy
+RUN go build -o main
+
 # Final stage
 FROM alpine:latest
 
