@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o user-service ./cmd/main.go
+RUN go build -o user-service ./main.go
 
 # Final stage
 FROM alpine:latest
