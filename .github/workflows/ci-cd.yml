@@ -74,19 +74,23 @@ jobs:
       - name: Pull latest changes from selena-devops
         run: |
           cd selena-prod
-          ls -a
-
           if [ ! -d "selena-prod/.git" ]; then
             echo "Initializing the repository and pulling the latest changes..."
             git init
-            git remote add origin git@github.com:vitalii-q/selena-devops.git
+            
+            # Проверяем, есть ли уже удаленный репозиторий
+            if ! git remote get-url origin &>/dev/null; then
+                echo "Adding remote origin..."
+                git remote add origin git@github.com:vitalii-q/selena-devops.git
+            else
+                echo "Remote origin is already set."
+            fi
+
             git pull origin main
           else
             echo "Repository already exists. Pulling the latest changes..."
             git pull origin main
           fi
-
-          ls -a
 
       - name: Remove existing containers
         run: |
