@@ -73,17 +73,17 @@ jobs:
     steps:
       - name: Pull latest changes from selena-devops
         run: |
-          cd selena-prod/user-service
+          cd selena-prod
           ls -a
 
-          if [ ! -d "selena-prod/user-service/.git" ]; then
+          if [ ! -d "selena-prod/.git" ]; then
             echo "Cloning the repository..."
             git clone git@github.com:vitalii-q/selena-devops.git
           else
             echo "Repository already exists. Pulling the latest changes..."
             git pull origin main
           fi
-          
+
           ls -a
 
       - name: Remove existing containers
