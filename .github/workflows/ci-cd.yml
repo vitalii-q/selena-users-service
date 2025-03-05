@@ -71,6 +71,12 @@ jobs:
     needs: build
 
     steps:
+      - name: Pull latest changes from selena-devops
+        run: |
+          git clone git@github.com:vitalii-q/selena-devops.git
+          cd selena-devops
+          git pull origin main
+
       - name: Remove existing containers
         run: |
           cd selena-prod
@@ -83,3 +89,4 @@ jobs:
           cd selena-prod
           docker-compose pull user-service
           docker-compose up -d user-service
+          docker ps -a
