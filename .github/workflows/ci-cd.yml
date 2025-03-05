@@ -102,6 +102,6 @@ jobs:
           pwd # покажет текущую директорию
           ls # для проверки содержимого
           cd selena-prod
-          docker-compose pull user-service
-          docker-compose up -d user-service
+          docker-compose pull users-service
+          docker-compose up -d users-service
           docker ps -a
