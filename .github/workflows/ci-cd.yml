@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: [self-hosted, user-service-runner]
 
     permissions:
       packages: write   # Разрешение для записи в пакеты (GHCR)
@@ -67,7 +67,7 @@ jobs:
           docker push ghcr.io/${{ github.repository_owner }}/selena-users-service/users-service:latest
 
   deploy:
-    runs-on: self-hosted
+    runs-on: [self-hosted, user-service-runner]
     needs: build
 
     steps:
