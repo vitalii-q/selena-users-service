@@ -24,12 +24,12 @@ jobs:
 
       - name: Checkout code
         run: |
-          if [ ! -d "selena-prod/user-service/.git" ]; then
+          if [ ! -d "selena-prod/users-service/.git" ]; then
             echo "Cloning the repository..."
-            git clone https://github.com/vitalii-q/selena-user-service selena-prod/user-service
+            git clone https://github.com/vitalii-q/selena-users-service selena-prod/users-service
           else
             echo "Repository already exists. Pulling the latest changes..."
-            cd selena-prod/user-service && git pull
+            cd selena-prod/users-service && git pull
           fi
 
       - name: Set up Docker Buildx
@@ -45,7 +45,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd selena-prod/user-service
+          cd selena-prod/users-service
           docker build -t ${{ secrets.USER_SERVICE_IMAGE_NAME }} .
 
       - name: Run tests
@@ -54,8 +54,8 @@ jobs:
 
       - name: Build Docker image for GHCR
         run: |
-          cd selena-prod/user-service
-          docker build -t ghcr.io/${{ github.repository_owner }}/user-service:latest .
+          cd selena-prod/users-service
+          docker build -t ghcr.io/${{ github.repository_owner }}/users-service:latest .
 
       # GitHub Container Registry
       - name: Log in to GitHub Container Registry
@@ -64,7 +64,7 @@ jobs:
           
       - name: Push Docker image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/selena-user-service/user-service:latest
+          docker push ghcr.io/${{ github.repository_owner }}/selena-users-service/users-service:latest
 
   deploy:
     runs-on: self-hosted
@@ -97,7 +97,7 @@ jobs:
           cd selena-prod
           docker-compose down || true
 
-      - name: Deploy user-service application
+      - name: Deploy users-service application
         run: |
           pwd # покажет текущую директорию
           ls # для проверки содержимого
