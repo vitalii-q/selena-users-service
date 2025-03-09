@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, user-service-runner]
+    runs-on: self-hosted
 
     permissions:
       packages: write   # Разрешение для записи в пакеты (GHCR)
@@ -43,19 +43,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build Docker image
-        run: |
-          cd selena-prod/users-service
-          docker build -t ${{ secrets.USER_SERVICE_IMAGE_NAME }} .
-
-      - name: Run tests
-        run: |
-          docker run ${{ secrets.USER_SERVICE_IMAGE_NAME }} echo "Container is running"
-
       - name: Build Docker image for GHCR
         run: |
           cd selena-prod/users-service
           docker build -t ghcr.io/${{ github.repository_owner }}/users-service:latest .
+
+      - name: Run tests
+        run: |
+          docker run --rm ${{ secrets.USER_SERVICE_IMAGE_NAME }} echo "Container is running"
 
       # GitHub Container Registry
       - name: Log in to GitHub Container Registry
@@ -67,7 +62,7 @@ jobs:
           docker push ghcr.io/${{ github.repository_owner }}/selena-users-service/users-service:latest
 
   deploy:
-    runs-on: [self-hosted, user-service-runner]
+    runs-on: self-hosted
     needs: build
 
     steps:
@@ -97,11 +92,10 @@ jobs:
           cd selena-prod
           docker-compose down || true
 
-      - name: Deploy users-service application
+      - name: Deploy application
         run: |
-          pwd # покажет текущую директорию
-          ls # для проверки содержимого
           cd selena-prod
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           docker-compose pull users-service
           docker-compose up -d users-service
           docker ps -a
