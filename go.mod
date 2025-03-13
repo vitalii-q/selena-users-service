@@ -1,3 +1,3 @@
-module github.com/vitalii-q/selena-user-service
+module github.com/vitalii-q/selena-users-service
 
 go 1.24.0
