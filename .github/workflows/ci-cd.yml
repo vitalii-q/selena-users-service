@@ -46,7 +46,7 @@ jobs:
       - name: Build Docker image for GHCR
         run: |
           cd selena-prod/users-service
-          docker build -t ghcr.io/${{ github.repository_owner }}/users-service:latest .
+          docker build -t ghcr.io/${{ github.repository_owner }}/selena/users-service:latest .
 
       - name: Run tests
         run: |
@@ -59,7 +59,7 @@ jobs:
           
       - name: Push Docker image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/selena-users-service/users-service:latest
+          docker push ghcr.io/${{ github.repository_owner }}/selena/users-service:latest
 
   deploy:
     runs-on: self-hosted
