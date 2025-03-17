@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+
+	"github.com/vitalii-q/selena-users-service/config"
 )
 
 func main() {
@@ -34,10 +36,20 @@ func setupLogger() {
 
 // getPort получает порт из переменной окружения или использует значение по умолчанию
 func getPort() string {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "9065"
+	// Получаем путь к файлу конфигурации из переменной окружения
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		// Если переменная окружения не задана, используем путь по умолчанию
+		configPath = "/config/config.yaml"
 	}
+
+	// Загружаем конфигурацию
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		logrus.Fatalf("Error loading config: %v", err)
+	}
+
+	port := cfg.Server.Port
 	return port
 }
 
