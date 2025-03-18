@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . ./
 
-RUN go build -o users-service ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/users-service ./main.go
 
 RUN mkdir -p /config
 COPY config/ /config/
@@ -23,10 +23,12 @@ RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate
 # Final stage
 FROM alpine:latest
 
-WORKDIR /root/
+WORKDIR /app/users-service
 
-COPY --from=builder /app/users-service .
+COPY --from=builder /app /app/users-service
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
+
+RUN chmod +x /app/users-service
 
 # Добавляем PostgreSQL клиент в образ
 RUN apk update && apk add postgresql-client
