@@ -7,7 +7,8 @@ RUN go mod download
 
 COPY . ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/users-service ./main.go
+#RUN CGO_ENABLED=0 GOOS=linux go build -o /app/users-service ./main.go
+RUN go build -o /app/users-service ./main.go
 
 RUN mkdir -p /config
 COPY config/ /config/
