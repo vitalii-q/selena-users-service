@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,40 +19,51 @@ import (
 )
 
 func main() {
-	log.Fatal("test main.go")
-	// Настройка логирования
+	fmt.Println("TEST MAIN GO") // Должно напечататься в stdout
+	os.Exit(1)
+
+	// Создаём контекст с отменой
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Освобождаем ресурсы при выходе
+
+	// Настраиваем логирование
 	setupLogger()
 
-	// Определение порта
-	port := getPort()
-
-	// Загружаем строку подключения из переменных окружения
-	databaseUrl := os.Getenv("DATABASE_URL")
-	if databaseUrl == "" {
-		log.Fatal("DATABASE_URL is not set")
-	}
-
-	// Подключаемся к базе через pgxpool
-	dbPool, err := pgxpool.New(context.Background(), databaseUrl)
+	// Подключаемся к базе
+	dbPool, err := pgxpool.New(ctx, getDatabaseURL())
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
-	defer dbPool.Close()
+	defer dbPool.Close() // Закроется корректно при завершении программы
 
-	// Создаём сервис пользователей
+	// Создаём сервис и обработчики
 	userService := services.NewUserService(dbPool)
-
-	// Создаём обработчик пользователей
 	userHandler := handlers.NewUserHandler(userService)
 
-	// Инициализация маршрутизатора
+	// Запускаем сервер
+	port := getPort()
 	r := setupRouter(userHandler)
 
-	// Запуск сервера
-	logrus.Infof("Starting server on port %s...", port)
-	if err := r.Run(":" + port); err != nil {
-		logrus.Fatalf("Server failed to start: %v", err)
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	go func() {
+		logrus.Infof("Starting server on port %s...", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logrus.Fatalf("Server failed: %v", err)
+		}
+	}()
+
+	// Ждем сигнала завершения (например, Ctrl+C)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	<-sig
+
+	log.Println("Shutting down server...")
+	cancel()             // Завершаем контекст
+	server.Shutdown(ctx) // Корректно останавливаем сервер
 }
 
 // setupLogger настраивает логирование
@@ -104,4 +118,21 @@ func handleRoot(c *gin.Context) {
 func handleHealth(c *gin.Context) {
 	logrus.Info("Health check request")
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func getDatabaseURL() string {
+	// Собираем строку подключения вручную
+	dbUser := os.Getenv("POSTGRES_USER")
+	dbPassword := os.Getenv("POSTGRES_PASSWORD")
+	dbName := os.Getenv("POSTGRES_NAME")
+	dbPort := os.Getenv("POSTGRES_PORT")
+
+	if dbUser == "" || dbPassword == "" || dbName == "" || dbPort == "" {
+		log.Fatal("One or more required database environment variables are missing")
+	}
+
+	databaseUrl := fmt.Sprintf("postgres://%s:%s@postgres:5432/%s?sslmode=disable",
+		dbUser, dbPassword, dbName)
+
+	return databaseUrl
 }

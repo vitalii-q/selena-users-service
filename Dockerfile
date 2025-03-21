@@ -21,6 +21,9 @@ RUN go build -o main
 # Installing migrate tool during build
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+# Устанавливаем air для горячей перезагрузки
+RUN go install github.com/cosmtrek/air@latest
+
 # Final stage
 FROM alpine:latest
 
@@ -37,4 +40,4 @@ RUN apk add --no-cache git
 
 EXPOSE ${USER_SERVICE_PORT}
 
-CMD ["./users-service"]
+CMD ["./users-service", "air"]
