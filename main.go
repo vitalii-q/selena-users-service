@@ -19,8 +19,8 @@ import (
 )
 
 func main() {
-	fmt.Println("TEST MAIN GO") // Должно напечататься в stdout
-	os.Exit(1)
+	//fmt.Println("TEST MAIN GO") // Должно напечататься в stdout
+	//os.Exit(1)
 
 	// Создаём контекст с отменой
 	ctx, cancel := context.WithCancel(context.Background())
