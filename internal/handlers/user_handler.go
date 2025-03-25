@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 )
@@ -38,13 +40,16 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 
 // GetUserHandler - обработчик для получения пользователя по ID
 func (h *UserHandler) GetUserHandler(c *gin.Context) {
-	//id, err := strconv.Atoi(c.Param("id"))
-	//if err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-	//	return
-	//}
+	idStr := c.Param("id") 
 
-	user, err := h.service.GetUser("")
+	// Преобразуем строку в uuid.UUID
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		return
+	}
+
+	user, err := h.service.GetUser(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -55,19 +60,22 @@ func (h *UserHandler) GetUserHandler(c *gin.Context) {
 
 // UpdateUserHandler - обработчик для обновления данных пользователя
 func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	idParam := c.Param("id")
+
+	// Парсим UUID
+	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
 		return
 	}
 
-	var user models.User
-	if err := c.ShouldBindJSON(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+	var updatedUser models.User
+	if err := c.ShouldBindJSON(&updatedUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
-	updatedUser, err := h.service.UpdateUser(id, user)
+	updatedUser, err = h.service.UpdateUser(id, updatedUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -7,6 +7,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
+
 	"github.com/vitalii-q/selena-users-service/internal/models"
 )
 
@@ -37,12 +39,12 @@ func (s *UserService) CreateUser(user models.User) (models.User, error) {
 }
 
 // GetUser - получение пользователя по UUID
-func (s *UserService) GetUser(id string) (models.User, error) {
+func (s *UserService) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
 	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at
 			  FROM users WHERE id = $1`
 
-	err := s.db.QueryRow(context.Background(), query, id).Scan(
+	err := s.db.QueryRow(context.Background(), query, id.String()).Scan(
 		&user.ID, &user.FirstName, &user.LastName, &user.Email,
 		&user.Role, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt,
 	)
@@ -57,9 +59,8 @@ func (s *UserService) GetUser(id string) (models.User, error) {
 	return user, nil
 }
 
-
 // UpdateUser - обновление данных пользователя
-func (s *UserService) UpdateUser(id int, updatedUser models.User) (models.User, error) {
+func (s *UserService) UpdateUser(id uuid.UUID, updatedUser models.User) (models.User, error) {
 	query := `UPDATE users 
 			  SET first_name = $1, last_name = $2, email = $3, updated_at = NOW()
 			  WHERE id = $4 RETURNING updated_at`
@@ -75,7 +76,7 @@ func (s *UserService) UpdateUser(id int, updatedUser models.User) (models.User, 
 		return models.User{}, err
 	}
 
-	updatedUser.ID = ""
+	updatedUser.ID = id 
 	return updatedUser, nil
 }
 

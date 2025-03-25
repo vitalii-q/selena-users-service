@@ -1,12 +1,12 @@
 package models
 
 import "time"
-//import "github.com/google/uuid"
+import "github.com/google/uuid"
 
 
 // User - модель пользователя
 type User struct {
-	ID        string  `json:"id"`
+	ID        uuid.UUID  `json:"id"`
 	FirstName string     `json:"first_name"`
 	LastName  string     `json:"last_name"`
 	Email     string     `json:"email"`
