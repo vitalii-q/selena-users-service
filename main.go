@@ -41,7 +41,10 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 
 	// Запускаем сервер
-	port := getPort()
+	port := os.Getenv("APP_PORT")
+	if port == "" {
+		port = "9065" // По умолчанию основной контейнер работает на 9065
+	}
 	r := setupRouter(userHandler)
 
 	server := &http.Server{

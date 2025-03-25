@@ -38,13 +38,13 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 
 // GetUserHandler - обработчик для получения пользователя по ID
 func (h *UserHandler) GetUserHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
+	//id, err := strconv.Atoi(c.Param("id"))
+	//if err != nil {
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+	//	return
+	//}
 
-	user, err := h.service.GetUser(id)
+	user, err := h.service.GetUser("")
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

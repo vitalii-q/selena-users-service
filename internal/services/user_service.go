@@ -36,8 +36,8 @@ func (s *UserService) CreateUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// GetUser - получение пользователя по ID
-func (s *UserService) GetUser(id int) (models.User, error) {
+// GetUser - получение пользователя по UUID
+func (s *UserService) GetUser(id string) (models.User, error) {
 	var user models.User
 	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at
 			  FROM users WHERE id = $1`
@@ -57,6 +57,7 @@ func (s *UserService) GetUser(id int) (models.User, error) {
 	return user, nil
 }
 
+
 // UpdateUser - обновление данных пользователя
 func (s *UserService) UpdateUser(id int, updatedUser models.User) (models.User, error) {
 	query := `UPDATE users 
@@ -74,7 +75,7 @@ func (s *UserService) UpdateUser(id int, updatedUser models.User) (models.User, 
 		return models.User{}, err
 	}
 
-	updatedUser.ID = id
+	updatedUser.ID = ""
 	return updatedUser, nil
 }
 

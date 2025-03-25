@@ -1,20 +1,17 @@
 FROM golang:1.24.0-alpine AS builder
 
-WORKDIR /app
+WORKDIR /app/users-service
 
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Устанавливаем uuid ДО сборки проекта
+RUN go get github.com/google/uuid
+RUN go mod tidy
+
 COPY . ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/users-service/main ./main.go
-
-RUN mkdir -p /config
-COPY users-service/config/config.yaml /config/config.yaml
-
-# Downlouding variables from .env
-RUN go mod tidy
-#RUN go build -o main
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/main ./main.go
 
 # Installing migrate tool during build
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -27,23 +24,24 @@ FROM golang:1.24.0-alpine AS final
 
 WORKDIR /app/users-service
 
-COPY --from=builder /app/users-service /app/users-service
+# Копируем бинарник и необходимые файлы из билд-образа
+COPY --from=builder /app/bin/main /app/bin/main
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /go/bin/air /usr/local/bin/air
 
 # Устанавливаем Go в финальный контейнер (для air)
 RUN apk add --no-cache go
 
-# Проверяем, есть ли бинарник main
-RUN ls -la /app/users-service
-
 # Добавляем права на выполнение
-RUN chmod +x /app/users-service/main
+RUN chmod +x /app/bin/main
 
 # Добавляем PostgreSQL клиент в образ
 RUN apk update && apk add postgresql-client
 RUN apk add --no-cache git
 
+# Устанавливаем переменную окружения для конфиг-файла
+ENV CONFIG_PATH="/app/users-service/config/config.yaml"
+
 EXPOSE ${USER_SERVICE_PORT}
 
-CMD ["/app/users-service/main"]
+CMD ["/app/bin/main"]
