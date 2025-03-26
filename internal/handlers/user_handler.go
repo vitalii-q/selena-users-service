@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
+	//"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -99,12 +99,16 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 
 // DeleteUserHandler - обработчик для удаления пользователя
 func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	idStr := c.Param("id")
+
+	// Преобразуем строку в uuid.UUID
+	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
 		return
 	}
 
+	// Вызываем сервис для удаления пользователя
 	err = h.service.DeleteUser(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

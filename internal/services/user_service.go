@@ -81,7 +81,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, updatedUser models.User) (models.
 }
 
 // DeleteUser - удаление пользователя по ID
-func (s *UserService) DeleteUser(id int) error {
+func (s *UserService) DeleteUser(id uuid.UUID) error {
 	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1`
 	_, err := s.db.Exec(context.Background(), query, id)
 
