@@ -18,16 +18,14 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/services"
 )
 
-func main() {
-	//fmt.Println("TEST MAIN GO") // Должно напечататься в stdout
-	//os.Exit(1)
+func init() {
+	setupLogger() // Настраиваем логирование
+}
 
+func main() {
 	// Создаём контекст с отменой
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Освобождаем ресурсы при выходе
-
-	// Настраиваем логирование
-	setupLogger()
 
 	// Подключаемся к базе
 	dbPool, err := pgxpool.New(ctx, getDatabaseURL())
@@ -71,9 +69,12 @@ func main() {
 
 // setupLogger настраивает логирование
 func setupLogger() {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetLevel(logrus.DebugLevel)         // Устанавливаем глобальный уровень логирования
+	logrus.SetFormatter(&logrus.TextFormatter{ // Опционально: настраиваем формат логов
+		FullTimestamp: true,
+		ForceColors:   true,
+	})
 	logrus.SetOutput(os.Stdout)
-	logrus.SetLevel(logrus.InfoLevel)
 }
 
 // getPort получает порт из переменной окружения или использует значение по умолчанию

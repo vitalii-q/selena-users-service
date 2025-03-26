@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
@@ -24,8 +25,20 @@ func NewUserHandler(service *services.UserService) *UserHandler {
 // CreateUserHandler - обработчик для создания пользователя
 func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	var user models.User
+
+	//logrus.Info("TEST 1")
+
 	if err := c.ShouldBindJSON(&user); err != nil {
+		logrus.Error("JSON binding error:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	//logrus.Info("TEST 2")
+
+	// Проверяем, все ли параметры переданы
+	if user.FirstName == "" || user.LastName == "" || user.Email == "" || user.Role == "" {
+		c.JSON(400, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -40,7 +53,7 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 
 // GetUserHandler - обработчик для получения пользователя по ID
 func (h *UserHandler) GetUserHandler(c *gin.Context) {
-	idStr := c.Param("id") 
+	idStr := c.Param("id")
 
 	// Преобразуем строку в uuid.UUID
 	id, err := uuid.Parse(idStr)
