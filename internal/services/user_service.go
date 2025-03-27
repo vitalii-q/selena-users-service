@@ -3,23 +3,25 @@ package services
 import (
 	"context"
 	"errors"
+
 	//"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	//"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pashagolub/pgxmock/v2"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
 )
 
 // UserService - сервис работы с пользователями
 type UserService struct {
-	db *pgxpool.Pool
+	db pgxmock.PgxPoolIface
 }
 
 // NewUserService - конструктор UserService
-func NewUserService(db *pgxpool.Pool) *UserService {
-	return &UserService{db: db}
+func NewUserService(db pgxmock.PgxPoolIface) *UserService {
+    return &UserService{db: db}
 }
 
 // CreateUser - создание нового пользователя
