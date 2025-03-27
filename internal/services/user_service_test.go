@@ -16,7 +16,7 @@ import (
 func TestCreateUser(t *testing.T) {
 	mock, err := pgxmock.NewPool()
 	assert.NoError(t, err)
-	defer mock.Close()
+	defer mock.Close() // закрывает ресурсы, связанные с мок-объектом после выполнения func TestCreateUser
 
 	// Данные пользователя
 	newUser := models.User{

@@ -9,18 +9,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	//"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pashagolub/pgxmock/v2"
+	//"github.com/pashagolub/pgxmock/v2"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
 )
 
 // UserService - сервис работы с пользователями
 type UserService struct {
-	db pgxmock.PgxPoolIface
+	db db_interface
 }
 
 // NewUserService - конструктор UserService
-func NewUserService(db pgxmock.PgxPoolIface) *UserService {
+func NewUserService(db db_interface) *UserService {
     return &UserService{db: db}
 }
 
