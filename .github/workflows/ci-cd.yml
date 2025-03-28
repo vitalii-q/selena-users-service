@@ -9,8 +9,27 @@ on:
       - main
 
 jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Run tests
+        run: go test ./... -v
+
   build:
     runs-on: self-hosted
+    needs: test  # Запускать только если тесты прошли
 
     permissions:
       packages: write   # Разрешение для записи в пакеты (GHCR)

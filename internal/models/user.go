@@ -1,18 +1,20 @@
 package models
 
-import "time"
-import "github.com/google/uuid"
+import (
+	"time"
 
+	"github.com/google/uuid"
+)
 
 // User - модель пользователя
 type User struct {
-	ID        uuid.UUID  `json:"id"`
-	FirstName string     `json:"first_name"`
-	LastName  string     `json:"last_name"`
-	Email     string     `json:"email"`
-	Password  string     `json:"-"`
-	Role      string     `json:"role"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	ID           uuid.UUID `json:"id,omitempty"`
+	FirstName    string    `json:"first_name" validate:"required,min=2"`
+	LastName     string    `json:"last_name" validate:"required,min=2"`
+	Email        string    `json:"email" validate:"required,email"`
+	Password     string    `json:"password,omitempty" validate:"required,min=6"`
+	Role         string    `json:"role" validate:"required,oneof=admin user"`
+	CreatedAt    time.Time `json:"created_at,omitempty"`
+	UpdatedAt    time.Time `json:"updated_at,omitempty"`
+	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
 }

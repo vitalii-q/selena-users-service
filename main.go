@@ -35,7 +35,7 @@ func main() {
 	defer dbPool.Close() // Закроется корректно при завершении программы
 
 	// Создаём сервис и обработчики
-	userService := services.NewUserService(dbPool)
+	userService := services.NewUserServiceImpl(dbPool)
 	userHandler := handlers.NewUserHandler(userService)
 
 	// Запускаем сервер

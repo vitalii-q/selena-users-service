@@ -5,6 +5,7 @@ import (
 	//"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
@@ -12,14 +13,18 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/services"
 )
 
-// UserHandler - структура обработчика пользователей
+// UserHandler - обработчик HTTP-запросов, связанных с пользователями
 type UserHandler struct {
-	service *services.UserService
+	service   services.UserServiceInterface
+	validator *validator.Validate
 }
 
 // NewUserHandler - конструктор UserHandler
-func NewUserHandler(service *services.UserService) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(service services.UserServiceInterface) *UserHandler {
+	return &UserHandler{
+		service:   service,
+		validator: validator.New(),
+	}
 }
 
 // CreateUserHandler - обработчик для создания пользователя
@@ -36,9 +41,9 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 
 	//logrus.Info("TEST 2")
 
-	// Проверяем, все ли параметры переданы
-	if user.FirstName == "" || user.LastName == "" || user.Email == "" || user.Role == "" {
-		c.JSON(400, gin.H{"error": "Invalid request"})
+	// Валидация структуры
+	if err := h.validator.Struct(user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
 		return
 	}
 
@@ -85,6 +90,12 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 	var updatedUser models.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	// Валидация структуры
+	if err := h.validator.Struct(updatedUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
 		return
 	}
 
