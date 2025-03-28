@@ -19,17 +19,18 @@ import (
 // UserServiceImpl - реализация сервиса пользователей
 type UserServiceImpl struct {
 	db db_interface
+	passwordHasher utils.PasswordHasher
 }
 
 // NewUserServiceImpl - конструктор UserServiceImpl
-func NewUserServiceImpl(db db_interface) *UserServiceImpl {
-	return &UserServiceImpl{db: db}
+func NewUserServiceImpl(db db_interface, passwordHasher utils.PasswordHasher) *UserServiceImpl {
+	return &UserServiceImpl{db: db, passwordHasher: passwordHasher}
 }
 
 // CreateUser - создание нового пользователя
 func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 	// Хешируем пароль перед сохранением
-	hashedPassword, err := utils.HashPassword(user.Password)
+	hashedPassword, err := s.passwordHasher.HashPassword(user.Password)
 	if err != nil {
 		return models.User{}, err
 	}

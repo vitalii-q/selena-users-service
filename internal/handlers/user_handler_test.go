@@ -60,7 +60,8 @@ func TestCreateUserHandler(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB)
+	passwordHasher := &utils.FixedSaltHasher{}
+	userService := services.NewUserServiceImpl(mockDB, passwordHasher)
 	userHandler := NewUserHandler(userService)
 
 	router := setupRouter(userHandler)
@@ -69,7 +70,7 @@ func TestCreateUserHandler(t *testing.T) {
 	plainPassword := "hashedpassword"
 
 	// Хешируем пароль в тесте (как это делает сервис)
-	hashedPassword, err := utils.HashPasswordForTests(plainPassword)
+	hashedPassword, err := passwordHasher.HashPassword(plainPassword)
 	assert.NoError(t, err)
 
 	newUser := models.User{

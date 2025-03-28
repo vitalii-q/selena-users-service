@@ -16,6 +16,7 @@ import (
 	"github.com/vitalii-q/selena-users-service/config"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
 func init() {
@@ -34,8 +35,11 @@ func main() {
 	}
 	defer dbPool.Close() // Закроется корректно при завершении программы
 
+	// Создаём хешер паролей (обычный)
+	passwordHasher := &utils.BcryptHasher{} 
+
 	// Создаём сервис и обработчики
-	userService := services.NewUserServiceImpl(dbPool)
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
 	userHandler := handlers.NewUserHandler(userService)
 
 	// Запускаем сервер
