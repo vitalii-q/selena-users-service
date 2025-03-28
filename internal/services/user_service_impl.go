@@ -8,10 +8,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
 	//"github.com/jackc/pgx/v5/pgxpool"
 	//"github.com/pashagolub/pgxmock/v2"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
+	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
 // UserServiceImpl - реализация сервиса пользователей
@@ -26,11 +28,17 @@ func NewUserServiceImpl(db db_interface) *UserServiceImpl {
 
 // CreateUser - создание нового пользователя
 func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
+	// Хешируем пароль перед сохранением
+	hashedPassword, err := utils.HashPassword(user.Password)
+	if err != nil {
+		return models.User{}, err
+	}
+
 	query := `INSERT INTO users (first_name, last_name, email, password_hash, role, created_at, updated_at)
 			  VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id, created_at, updated_at`
 
-	err := s.db.QueryRow(context.Background(), query,
-		user.FirstName, user.LastName, user.Email, user.Password, user.Role).
+	err = s.db.QueryRow(context.Background(), query,
+		user.FirstName, user.LastName, user.Email, hashedPassword, user.Role).
 		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 
 	if err != nil {

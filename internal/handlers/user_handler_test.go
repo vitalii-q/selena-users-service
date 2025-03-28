@@ -85,7 +85,7 @@ func TestCreateUserHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	//t.Log("Response Body:", w.Body.String()) // вывод тела запроса
+	t.Log("Response Body:", w.Body.String()) // вывод тела запроса
 
 	assert.Equal(t, http.StatusCreated, w.Code)
 	mockDB.ExpectationsWereMet()
