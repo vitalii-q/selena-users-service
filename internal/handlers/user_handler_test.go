@@ -17,6 +17,7 @@ import (
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
 // MockUserService - это мок для интерфейса UserServiceInterface
@@ -64,20 +65,30 @@ func TestCreateUserHandler(t *testing.T) {
 
 	router := setupRouter(userHandler)
 
+	// Пароль для теста
+	plainPassword := "hashedpassword"
+
+	// Хешируем пароль в тесте (как это делает сервис)
+	hashedPassword, err := utils.HashPasswordForTests(plainPassword)
+	assert.NoError(t, err)
+
 	newUser := models.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "johndoe@example.com",
-		Password:  "hashedpassword",
+		Password:  plainPassword, // Используем обычный пароль
 		Role:      "user",
 	}
 
+	// Генерируем новый ID
 	userID := uuid.New()
+	// Ожидаем, что будет передано в запрос
 	mockDB.ExpectQuery(`INSERT INTO users`).
-		WithArgs("John", "Doe", "johndoe@example.com", "", "user").
+		WithArgs("John", "Doe", "johndoe@example.com", hashedPassword, "user").
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(userID, time.Now(), time.Now()))
 
+	// Тело запроса
 	body, _ := json.Marshal(newUser)
 	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -87,6 +98,7 @@ func TestCreateUserHandler(t *testing.T) {
 
 	t.Log("Response Body:", w.Body.String()) // вывод тела запроса
 
+	// Проверяем, что статус 201 Created
 	assert.Equal(t, http.StatusCreated, w.Code)
 	mockDB.ExpectationsWereMet()
 }
