@@ -66,18 +66,11 @@ func TestCreateUserHandler(t *testing.T) {
 
 	router := setupRouter(userHandler)
 
-	// Пароль для теста
-	plainPassword := "hashedpassword"
-
-	// Хешируем пароль в тесте (как это делает сервис)
-	//hashedPassword, err := passwordHasher.HashPassword(plainPassword)
-	assert.NoError(t, err)
-
 	newUser := models.User{
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "johndoe@example.com",
-		Password:  plainPassword, // Используем обычный пароль
+		Password:  "hashedpassword",
 		Role:      "user",
 	}
 
@@ -97,7 +90,7 @@ func TestCreateUserHandler(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	t.Log("Response Body:", w.Body.String()) // вывод тела запроса
+	//t.Log("Response Body:", w.Body.String()) // вывод тела запроса
 
 	// Проверяем, что статус 201 Created
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -158,7 +151,8 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB)
+	passwordHasher := &utils.FixedSaltHasher{} // добавили хешер
+	userService := services.NewUserServiceImpl(mockDB, passwordHasher) // передаем его в сервис
 	userHandler := NewUserHandler(userService)
 	router := setupRouter(userHandler)
 
@@ -171,9 +165,9 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 		Role:      "user",
 	}
 
-	// Эмуляция ошибки при вставке в БД (например, дубликат email)
+	// Эмуляция ошибки дубликата email в БД
 	mockDB.ExpectQuery(`INSERT INTO users`).
-		WithArgs("John", "Doe", "johndoe@example.com", "", "user").
+		WithArgs("John", "Doe", "johndoe@example.com", pgxmock.AnyArg(), "user").
 		WillReturnError(errors.New("duplicate key value violates unique constraint"))
 
 	body, _ := json.Marshal(newUser)
