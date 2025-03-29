@@ -20,3 +20,10 @@ func (h *FixedSaltHasher) HashPassword(password string) (string, error) {
     }
     return string(hashedPassword), nil
 }
+
+// CheckPasswordHash проверяет, соответствует ли пароль хэшу
+func (h *FixedSaltHasher) CheckPasswordHash(password, hash string) bool {
+    saltedPassword := fmt.Sprintf("%s%s", fixedSalt, password)
+    return bcrypt.CompareHashAndPassword([]byte(hash), []byte(saltedPassword)) == nil
+}
+

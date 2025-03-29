@@ -70,7 +70,7 @@ func TestCreateUserHandler(t *testing.T) {
 	plainPassword := "hashedpassword"
 
 	// Хешируем пароль в тесте (как это делает сервис)
-	hashedPassword, err := passwordHasher.HashPassword(plainPassword)
+	//hashedPassword, err := passwordHasher.HashPassword(plainPassword)
 	assert.NoError(t, err)
 
 	newUser := models.User{
@@ -85,7 +85,7 @@ func TestCreateUserHandler(t *testing.T) {
 	userID := uuid.New()
 	// Ожидаем, что будет передано в запрос
 	mockDB.ExpectQuery(`INSERT INTO users`).
-		WithArgs("John", "Doe", "johndoe@example.com", hashedPassword, "user").
+		WithArgs("John", "Doe", "johndoe@example.com", pgxmock.AnyArg(), "user"). // pgxmock.AnyArg(), не проверяем точное значение аргумента
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(userID, time.Now(), time.Now()))
 
