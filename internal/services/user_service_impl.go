@@ -24,7 +24,10 @@ type UserServiceImpl struct {
 
 // NewUserServiceImpl - конструктор UserServiceImpl
 func NewUserServiceImpl(db db_interface, passwordHasher utils.PasswordHasher) *UserServiceImpl {
-	return &UserServiceImpl{db: db, passwordHasher: passwordHasher}
+	return &UserServiceImpl{
+		db: db, 
+		passwordHasher: passwordHasher,
+	}
 }
 
 // CreateUser - создание нового пользователя

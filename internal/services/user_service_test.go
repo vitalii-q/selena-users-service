@@ -15,6 +15,13 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/models"
 )
 
+// Мок для PasswordHasher
+type MockPasswordHasher struct{}
+
+func (m *MockPasswordHasher) HashPassword(password string) (string, error) {
+    return password + "_hashed", nil // Простейшее хеширование для тестов
+}
+
 // Тест для CreateUser
 func TestCreateUser(t *testing.T) {
 	mock, err := pgxmock.NewPool()
@@ -26,22 +33,24 @@ func TestCreateUser(t *testing.T) {
 		FirstName: "John",
 		LastName:  "Doe",
 		Email:     "johndoe@example.com",
-		Password:  "hashedpassword",
+		Password:  "password123",
 		Role:      "user",
 	}
 
 	createdAt := time.Now()
 	updatedAt := createdAt
 	userID := uuid.New()
+	expectedHashedPassword := "password123_hashed" // Ожидаемый хеш пароля
 
 	// Ожидаем, что будет вызван SQL-запрос с такими параметрами
 	mock.ExpectQuery(`INSERT INTO users`).
-		WithArgs(newUser.FirstName, newUser.LastName, newUser.Email, newUser.Password, newUser.Role).
+		WithArgs(newUser.FirstName, newUser.LastName, newUser.Email, expectedHashedPassword, newUser.Role).
 		WillReturnRows(pgxmock.NewRows([]string{"id", "created_at", "updated_at"}).
 			AddRow(userID, createdAt, updatedAt))
 
-	// Создаем сервис с мокнутым соединением
-	userService := NewUserService(mock)
+	// Создаем сервис с мокнутым соединением и передаем мок базы данных
+	passwordHasher := &MockPasswordHasher{} // Или используйте настоящий мок хешера
+	userService := NewUserService(mock, passwordHasher)
 
 	// Запускаем тестируемый метод
 	createdUser, err := userService.CreateUser(newUser)
@@ -80,7 +89,7 @@ func TestGetUser(t *testing.T) {
 			AddRow(expectedUser.ID, expectedUser.FirstName, expectedUser.LastName, expectedUser.Email, expectedUser.Role, expectedUser.CreatedAt, expectedUser.UpdatedAt, nil))
 
 	// Создаем сервис с мокнутым соединением
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	// Запускаем тестируемый метод
 	user, err := userService.GetUser(userID)
@@ -105,7 +114,7 @@ func TestGetUser_NotFound(t *testing.T) {
 		WithArgs(userID.String()).
 		WillReturnError(pgx.ErrNoRows)
 
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	_, err = userService.GetUser(userID)
 
@@ -131,7 +140,7 @@ func TestUpdateUser(t *testing.T) {
 		WithArgs(updatedUser.FirstName, updatedUser.LastName, updatedUser.Email, userID).
 		WillReturnRows(pgxmock.NewRows([]string{"updated_at"}).AddRow(updatedAt))
 
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	result, err := userService.UpdateUser(userID, updatedUser)
 
@@ -157,7 +166,7 @@ func TestUpdateUser_NotFound(t *testing.T) {
 		WithArgs(updatedUser.FirstName, updatedUser.LastName, updatedUser.Email, userID).
 		WillReturnError(pgx.ErrNoRows)
 
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	result, err := userService.UpdateUser(userID, updatedUser)
 
@@ -178,7 +187,7 @@ func TestDeleteUser(t *testing.T) {
 		WithArgs(userID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	err = userService.DeleteUser(userID)
 
@@ -197,7 +206,7 @@ func TestDeleteUser_Error(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(errors.New("database error"))
 
-	userService := NewUserService(mock)
+	userService := NewUserService(mock, nil)
 
 	err = userService.DeleteUser(userID)
 

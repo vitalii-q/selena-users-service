@@ -103,7 +103,7 @@ func TestCreateUserHandler_InvalidJSON(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB)
+	userService := services.NewUserService(mockDB, nil)
 	userHandler := NewUserHandler(userService)
 	router := setupRouter(userHandler)
 
@@ -124,7 +124,7 @@ func TestCreateUserHandler_MissingField(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB)
+	userService := services.NewUserService(mockDB, nil)
 	userHandler := NewUserHandler(userService)
 	router := setupRouter(userHandler)
 
