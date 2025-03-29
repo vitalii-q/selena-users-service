@@ -143,8 +143,11 @@ func TestCreateUserHandler_MissingField(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid request")
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+
+	assert.Equal(t, "Validation failed", resp["error"])
+	assert.Contains(t, resp["details"], "Email")
 }
 
 func TestCreateUserHandler_DBError(t *testing.T) {

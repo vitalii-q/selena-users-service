@@ -34,8 +34,8 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	//logrus.Info("TEST 1")
 
 	if err := c.ShouldBindJSON(&user); err != nil {
-		logrus.Error("JSON binding error:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		logrus.WithError(err).Error("Invalid JSON request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": "Invalid JSON request"})
 		return
 	}
 
