@@ -93,12 +93,36 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 		return
 	}
 
-	// Валидация структуры
-	if err := h.validator.Struct(updatedUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed", "details": err.Error()})
-		return
+	// Валидируем только те поля, которые присутствуют в запросе
+	if updatedUser.FirstName != "" {
+		if err := h.validator.Var(updatedUser.FirstName, "required"); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid first name"})
+			return
+		}
 	}
 
+	if updatedUser.LastName != "" {
+		if err := h.validator.Var(updatedUser.LastName, "required"); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid last name"})
+			return
+		}
+	}
+
+	if updatedUser.Email != "" {
+		if err := h.validator.Var(updatedUser.Email, "required,email"); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email"})
+			return
+		}
+	}
+
+	if updatedUser.Password != "" {
+		if err := h.validator.Var(updatedUser.Password, "required,min=6"); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid password"})
+			return
+		}
+	}
+
+	// Обновляем пользователя
 	updatedUser, err = h.service.UpdateUser(id, updatedUser)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -107,6 +131,7 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedUser)
 }
+
 
 // DeleteUserHandler - обработчик для удаления пользователя
 func (h *UserHandler) DeleteUserHandler(c *gin.Context) {

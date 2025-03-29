@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v2"
 	"github.com/stretchr/testify/assert"
@@ -235,24 +236,41 @@ func TestGetUserHandler_UserNotFound(t *testing.T) {
 }
 
 func TestUpdateUserHandler_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	router := gin.Default()
-	mockService := new(MockUserService)
-	handler := &UserHandler{service: mockService}
-	router.PUT("/users/:id", handler.UpdateUserHandler)
+    gin.SetMode(gin.TestMode)
+    router := gin.Default()
+    mockService := new(MockUserService)
+    validator := validator.New() // Создаем валидатор
+    handler := &UserHandler{service: mockService, validator: validator} // Передаем его в хэндлер
+    router.PUT("/users/:id", handler.UpdateUserHandler)
 
-	userID := uuid.New()
-	updatedUser := models.User{ID: userID, FirstName: "Updated", LastName: "User"}
-	mockService.On("UpdateUser", userID, updatedUser).Return(updatedUser, nil)
+    userID := uuid.New()
 
-	body, _ := json.Marshal(updatedUser)
-	req, _ := http.NewRequest("PUT", "/users/"+userID.String(), bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
+    // Обновленный пользователь, в котором изменяется только FirstName
+    updatedUser := models.User{
+        ID:        userID,
+        FirstName: "Updated", // Только FirstName изменяется
+    }
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	mockService.AssertExpectations(t)
+    // Мокируем обновление
+    mockService.On("UpdateUser", userID, updatedUser).Return(updatedUser, nil)
+
+    // Формируем запрос с обновленными данными
+    body, _ := json.Marshal(updatedUser)
+    req, _ := http.NewRequest("PUT", "/users/"+userID.String(), bytes.NewBuffer(body))
+    req.Header.Set("Content-Type", "application/json")
+    w := httptest.NewRecorder()
+
+    // Выполняем запрос
+    router.ServeHTTP(w, req)
+
+    // Логируем тело ответа
+    //t.Log("Response Body:", w.Body.String())
+
+    // Проверяем, что статус ответа 200 OK
+    assert.Equal(t, http.StatusOK, w.Code)
+
+    // Проверяем, что вызов был выполнен с правильными параметрами
+    mockService.AssertExpectations(t)
 }
 
 func TestUpdateUserHandler_InvalidUUID(t *testing.T) {
