@@ -113,6 +113,9 @@ func setupRouter(userHandler *handlers.UserHandler) *gin.Engine {
 	r.PUT("/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
 
+	r.GET("/oauth2/authorize", handlers.GetAuthorize)
+	r.POST("/oauth2/token", handlers.PostToken)
+
 	return r
 }
 
