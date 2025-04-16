@@ -73,6 +73,25 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
+// GetUserByEmail - получение пользователя по email
+func (s *UserServiceImpl) GetUserByEmail(email string) (models.UserAuth, error) {
+	var user models.UserAuth
+	query := `SELECT id, email, password_hash FROM users WHERE email = $1 AND deleted_at IS NULL`
+
+	err := s.db.QueryRow(context.Background(), query, email).Scan(
+		&user.ID, &user.Email, &user.PasswordHash,
+	)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.UserAuth{}, errors.New("user not found")
+		}
+		return models.UserAuth{}, err
+	}
+
+	return user, nil
+}
+
 // UpdateUser - обновление данных пользователя
 func (s *UserServiceImpl) UpdateUser(id uuid.UUID, updatedUser models.User) (models.User, error) {
 	query := `UPDATE users 
