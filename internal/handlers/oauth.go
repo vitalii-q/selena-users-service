@@ -3,9 +3,17 @@ package handlers
 import (
 	"net/http"
 	"github.com/gin-gonic/gin"
+
 	"net/url"
 	"log"
+
+	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
+
+type OAuthHandler struct {
+	UserService *services.UserServiceImpl
+}
 
 func GetAuthorize(c *gin.Context) {
 	clientID := c.Query("client_id")
@@ -30,41 +38,38 @@ func GetAuthorize(c *gin.Context) {
 	c.Redirect(http.StatusFound, redirect.String())
 }
 
-func PostToken(c *gin.Context) {
+func (h *OAuthHandler) PostToken(c *gin.Context) {
+	log.Println("Received request to /oauth2/token")
+	
 	grantType := c.PostForm("grant_type")
-	clientID := c.PostForm("client_id")
-	clientSecret := c.PostForm("client_secret")
-	code := c.PostForm("code")
-	//redirectURI := c.PostForm("redirect_uri")
+	email := c.PostForm("email")
+	password := c.PostForm("password")
 
-	// Поддерживаем только authorization_code
-	if grantType != "authorization_code" {
+	if grantType != "password" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported_grant_type"})
 		return
 	}
 
-	// TODO: Валидация client_id/client_secret
-	if clientID != "my_client_id" || clientSecret != "my_client_secret" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_client"})
+	user, err := h.UserService.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
 		return
 	}
 
-	// TODO: Проверка кода (в реальности: проверка в Redis/DB)
-	if code != "sample_auth_code_abc123" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_grant"})
+	if !utils.CheckPassword(password, user.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
 		return
 	}
 
-	// Генерация токена (в реальности: JWT или UUID)
-	accessToken := "access_token_xyz987"
-	refreshToken := "refresh_token_uvw456" // опционально
-
-	// TODO: Сохранять access_token и привязку к user
+	token, err := utils.GenerateJWT(user.ID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "token_generation_failed"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"token_type":    "bearer",
-		"expires_in":    3600,
-		"refresh_token": refreshToken,
+		"access_token": token,
+		"token_type":   "bearer",
+		"expires_in":   3600,
 	})
 }

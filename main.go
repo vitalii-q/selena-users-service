@@ -42,7 +42,7 @@ func main() {
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
 	userHandler := handlers.NewUserHandler(userService)
 
-	authHandler := &handlers.AuthHandler{
+	OAuthHandler := &handlers.OAuthHandler{
 		UserService: userService,
 	}
 
@@ -51,7 +51,7 @@ func main() {
 	if port == "" {
 		port = "9065" // По умолчанию основной контейнер работает на 9065
 	}
-	r := setupRouter(userHandler, authHandler)
+	r := setupRouter(userHandler, OAuthHandler)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -105,7 +105,7 @@ func getPort() string {
 }
 
 // setupRouter инициализирует маршрутизатор и эндпоинты
-func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.AuthHandler) *gin.Engine {
+func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthHandler) *gin.Engine {
 	r := gin.Default()
 
 	// 👇 Логгер для всех входящих запросов
@@ -124,9 +124,9 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.AuthHa
 	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
 
 	r.GET("/oauth2/authorize", handlers.GetAuthorize)
-	r.POST("/oauth2/token", handlers.PostToken)
+	r.POST("/oauth2/token", authHandler.PostToken)
 
-	r.POST("/login", authHandler.LoginHandler)
+	//r.POST("/login", authHandler.LoginHandler)
 
 	return r
 }
