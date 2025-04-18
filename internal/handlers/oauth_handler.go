@@ -39,6 +39,53 @@ func GetAuthorize(c *gin.Context) {
 }
 
 func (h *OAuthHandler) PostToken(c *gin.Context) {
+    log.Println("Received request to /oauth2/token")
+
+    // Получаем параметры из запроса
+    code := c.DefaultPostForm("code", "")
+    redirectURI := c.DefaultPostForm("redirect_uri", "")
+
+    // Проверяем, что все параметры переданы
+    if code == "" || redirectURI == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "missing_required_parameter"})
+        return
+    }
+
+    // Проверяем, есть ли код в системе (например, в БД) и соответствует ли redirect_uri.
+    authCode, err := h.AuthService.GetAuthCode(code)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_code"})
+        return
+    }
+
+    if authCode.RedirectURI != redirectURI {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_redirect_uri"})
+        return
+    }
+
+    // Генерируем токен (например, JWT) для пользователя, которому принадлежит код
+    user, err := h.UserService.GetUserByID(authCode.UserID)
+    if err != nil {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "user_not_found"})
+        return
+    }
+
+    token, err := utils.GenerateJWT(user.ID.String())
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "token_generation_failed"})
+        return
+    }
+
+    // Возвращаем access token
+    c.JSON(http.StatusOK, gin.H{
+        "access_token": token,
+        "token_type":   "bearer",
+        "expires_in":   3600,  // срок действия токена
+    })
+}
+
+
+/*func (h *OAuthHandler) PostToken(c *gin.Context) {
 	log.Println("Received request to /oauth2/token")
 	
 	grantType := c.PostForm("grant_type")
@@ -72,4 +119,4 @@ func (h *OAuthHandler) PostToken(c *gin.Context) {
 		"token_type":   "bearer",
 		"expires_in":   3600,
 	})
-}
+}*/
