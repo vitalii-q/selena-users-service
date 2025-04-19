@@ -41,9 +41,12 @@ func main() {
 	// Создаём сервис и обработчики
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
 	userHandler := handlers.NewUserHandler(userService)
+	authService := services.NewAuthService(dbPool)
 
+	// Создаём обработчик OAuth
 	OAuthHandler := &handlers.OAuthHandler{
 		UserService: userService,
+		AuthService: authService,
 	}
 
 	// Запускаем сервер
@@ -123,7 +126,7 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	r.PUT("/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
 
-	r.GET("/oauth2/authorize", handlers.GetAuthorize)
+	r.GET("/oauth2/authorize", authHandler.GetAuthorize)
 	r.POST("/oauth2/token", authHandler.PostToken)
 
 	//r.POST("/login", authHandler.LoginHandler)

@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"net/http"
-	"github.com/gin-gonic/gin"
 
-	"net/url"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+
 	"log"
+	"net/url"
 
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
@@ -13,20 +15,37 @@ import (
 
 type OAuthHandler struct {
 	UserService *services.UserServiceImpl
+	AuthService *services.AuthService
 }
 
-func GetAuthorize(c *gin.Context) {
-	clientID := c.Query("client_id")
+func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
+	//clientID := c.Query("client_id")
 	redirectURI := c.Query("redirect_uri")
 	state := c.Query("state")
+	email := c.Query("email")
+	password := c.Query("password")
 
-	// Для MVP — логируем clientID
-	log.Printf("Authorize request for client_id: %s", clientID)
+	logrus.Infof("email!!!: %s", email)
+	
+	// Найти пользователя по email
+	user, err := h.UserService.GetUserByEmail(email)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
+		return
+	}
 
-	// TODO: Validate client_id, redirect_uri
+	// Проверка пароля
+	if !utils.CheckPassword(password, user.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
+		return
+	}
 
-	// Сгенерировать временный код (в будущем — сохранить в БД)
-	authCode := "sample_auth_code_abc123"
+	// Сгенерировать авторизационный код
+	authCode, err := h.AuthService.GenerateAuthCode(user.ID.String(), redirectURI)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot_generate_code"})
+		return
+	}
 
 	// Редирект на redirect_uri с кодом
 	redirect, _ := url.Parse(redirectURI)
@@ -35,7 +54,7 @@ func GetAuthorize(c *gin.Context) {
 	q.Set("state", state)
 	redirect.RawQuery = q.Encode()
 
-	c.Redirect(http.StatusFound, redirect.String())
+	c.Redirect(http.StatusFound, "redirect.String()")
 }
 
 func (h *OAuthHandler) PostToken(c *gin.Context) {
@@ -64,7 +83,7 @@ func (h *OAuthHandler) PostToken(c *gin.Context) {
     }
 
     // Генерируем токен (например, JWT) для пользователя, которому принадлежит код
-    user, err := h.UserService.GetUserByID(authCode.UserID)
+    user, err := h.UserService.GetUser(authCode.UserID)
     if err != nil {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "user_not_found"})
         return
