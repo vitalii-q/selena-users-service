@@ -25,24 +25,30 @@ func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
 	email := c.Query("email")
 	password := c.Query("password")
 
-	logrus.Infof("email!!!: %s", email)
+	//logrus.Infof("email!!!: %s", email)
 	
 	// Найти пользователя по email
 	user, err := h.UserService.GetUserByEmail(email)
 	if err != nil {
+		logrus.Errorf("Error fetching user by email: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
 		return
 	}
 
 	// Проверка пароля
 	if !utils.CheckPassword(password, user.PasswordHash) {
+		logrus.Warnf("Invalid password for user: %s", email)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
 		return
 	}
 
+	//logrus.Infof("user!!!: %+v", user)
+	//logrus.Infof("pas!!!: s", password)
+
 	// Сгенерировать авторизационный код
-	authCode, err := h.AuthService.GenerateAuthCode(user.ID.String(), redirectURI)
+	authCode, err := h.AuthService.GenerateAuthCode(user.ID.String(), redirectURI, "local", user.ID.String())
 	if err != nil {
+		logrus.Errorf("Error generating authorization code: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot_generate_code"})
 		return
 	}
@@ -54,7 +60,8 @@ func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
 	q.Set("state", state)
 	redirect.RawQuery = q.Encode()
 
-	c.Redirect(http.StatusFound, "redirect.String()")
+	c.JSON(http.StatusOK, gin.H{"code": authCode})
+	//c.Redirect(http.StatusFound, redirect.String())
 }
 
 func (h *OAuthHandler) PostToken(c *gin.Context) {

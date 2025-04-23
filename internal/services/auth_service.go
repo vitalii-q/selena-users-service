@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	//"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 )
 
@@ -19,15 +19,39 @@ func NewAuthService(db db_interface) *AuthService {
 }
 
 // Генерация авторизационного кода (пока без client_id)
-func (s *AuthService) GenerateAuthCode(userID, redirectURI string) (string, error) {
+func (s *AuthService) GenerateAuthCode(userID, redirectURI, provider, providerID string) (string, error) {
 	code := generateRandomCode()
+	accessToken := "temporary" // заглушка до этапа получения токена PostToken()
 
-	query := `INSERT INTO oauth_sessions (code, user_id, redirect_uri, expires_at)
-			  VALUES ($1, $2, $3, $4)`
+	// Добавляем provider в запрос
+	query := `
+	INSERT INTO oauth_sessions (code, user_id, redirect_uri, provider, provider_id, access_token, expires_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	ON CONFLICT (provider, provider_id) DO UPDATE
+	SET code = EXCLUDED.code,
+	    redirect_uri = EXCLUDED.redirect_uri,
+	    access_token = EXCLUDED.access_token,
+	    expires_at = EXCLUDED.expires_at,
+	    updated_at = NOW()
+	`
 
-	//logrus.Infof("db!!!: %+v", s.db)
+	// Логируем db для отладки
+	if s.db == nil {
+		logrus.Infof("db!!!: %+v", s.db)
+	}
 
-	_, err := s.db.Exec(context.Background(), query, code, userID, redirectURI, time.Now().Add(5*time.Minute))
+	// Выполняем запрос с добавлением provider
+	_, err := s.db.Exec(
+		context.Background(), 
+		query, 
+		code, 
+		userID, 
+		redirectURI, 
+		provider, 
+		providerID, 
+		accessToken,
+		time.Now().Add(5*time.Minute),
+	)
 	if err != nil {
 		return "", err
 	}
