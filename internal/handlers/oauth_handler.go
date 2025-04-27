@@ -43,7 +43,7 @@ func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
 	}
 
 	//logrus.Infof("user!!!: %+v", user)
-	logrus.Infof("pas!!!: s", password)
+	//logrus.Infof("pas!!!: s", password)
 
 	// Сгенерировать авторизационный код
 	authCode, err := h.AuthService.GenerateAuthCode(user.ID.String(), redirectURI, "local", user.ID.String())
