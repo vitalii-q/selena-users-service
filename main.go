@@ -134,7 +134,7 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	//r.POST("/login", authHandler.LoginHandler)
 
 	logrus.WithField("authHandler", authHandler).Debug("test!!!")
-	logrus.Debugf("test!!!: %v", authHandler)
+	//logrus.Debugf("test!!!: %v", authHandler)
 	
 
 	b, _ := json.Marshal(authHandler) // +
