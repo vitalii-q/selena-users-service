@@ -113,14 +113,16 @@ func getPort() string {
 func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthHandler) *gin.Engine {
 	r := gin.Default()
 
-	// 👇 Логгер для всех входящих запросов
+	// Логгер для всех входящих запросов
 	r.Use(func(c *gin.Context) {
 		logrus.Infof("Incoming request: %s %s", c.Request.Method, c.Request.URL.Path)
 		c.Next()
 	})
 
+	// test routes
 	r.GET("/", handleRoot)
 	r.GET("/health", handleHealth)
+	r.GET("/protected", protected)
 
 	// Определяем маршруты
 	r.POST("/users", userHandler.CreateUserHandler)
@@ -128,14 +130,12 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	r.PUT("/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
 
-	r.GET("/oauth2/authorize", authHandler.GetAuthorize)
-	r.POST("/oauth2/token", authHandler.PostToken)
+	// authenticate
+	r.POST("/users/oauth2/authenticate", authHandler.Authenticate)
+	//r.GET("/oauth2/authorize", authHandler.GetAuthorize)
+	//r.POST("/oauth2/token", authHandler.PostToken)
 
 	//r.POST("/login", authHandler.LoginHandler)
-
-	//logrus.WithField("authHandler", authHandler).Debug("test!!!")
-	//logrus.Debugf("test!!!: %v", authHandler)
-	
 
 	b, _ := json.Marshal(authHandler) // +
 	logrus.Debugf("authHandler: %s", string(b))
@@ -154,6 +154,12 @@ func handleRoot(c *gin.Context) {
 // handleHealth отвечает на запросы к "/health"
 func handleHealth(c *gin.Context) {
 	logrus.Info("Health check request")
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+// protected отвечает на запросы к "/protected" защищен oauth2
+func protected(c *gin.Context) {
+	logrus.Info("Protected check request")
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 

@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"log"
-	"net/url"
+	//"log"
+	//"net/url"
 
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
@@ -18,7 +18,32 @@ type OAuthHandler struct {
 	AuthService *services.AuthService
 }
 
-func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
+func (h *OAuthHandler) Authenticate(c *gin.Context) {
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	logrus.Info(req)
+
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request"})
+		return
+	}
+
+	user, err := h.UserService.GetUserByEmail(req.Email)
+	if err != nil || !utils.CheckPassword(req.Password, user.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"authenticated_userid": user.ID.String(),
+	})
+}
+
+
+/*func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
 	//clientID := c.Query("client_id")
 	redirectURI := c.Query("redirect_uri")
 	state := c.Query("state")
@@ -60,11 +85,13 @@ func (h *OAuthHandler) GetAuthorize(c *gin.Context) {
 	q.Set("state", state)
 	redirect.RawQuery = q.Encode()
 
+	//logrus.Debug("pas!!!: s", password)
+
 	c.JSON(http.StatusOK, gin.H{"code": authCode})
 	//c.Redirect(http.StatusFound, redirect.String())
-}
+}*/
 
-func (h *OAuthHandler) PostToken(c *gin.Context) {
+/*func (h *OAuthHandler) PostToken(c *gin.Context) {
     log.Println("Received request to /oauth2/token")
 
     // Получаем параметры из запроса
@@ -108,41 +135,5 @@ func (h *OAuthHandler) PostToken(c *gin.Context) {
         "token_type":   "bearer",
         "expires_in":   3600,  // срок действия токена
     })
-}
-
-
-/*func (h *OAuthHandler) PostToken(c *gin.Context) {
-	log.Println("Received request to /oauth2/token")
-	
-	grantType := c.PostForm("grant_type")
-	email := c.PostForm("email")
-	password := c.PostForm("password")
-
-	if grantType != "password" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported_grant_type"})
-		return
-	}
-
-	user, err := h.UserService.GetUserByEmail(email)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
-		return
-	}
-
-	if !utils.CheckPassword(password, user.PasswordHash) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid_credentials"})
-		return
-	}
-
-	token, err := utils.GenerateJWT(user.ID.String())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "token_generation_failed"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": token,
-		"token_type":   "bearer",
-		"expires_in":   3600,
-	})
 }*/
+
