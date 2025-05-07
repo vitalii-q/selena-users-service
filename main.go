@@ -121,7 +121,7 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 
 	// test routes
 	r.GET("/", handleRoot)
-	r.GET("/health", handleHealth)
+	r.GET("/test", test)
 	r.GET("/protected", protected)
 
 	// Определяем маршруты
@@ -152,9 +152,9 @@ func handleRoot(c *gin.Context) {
 }
 
 // handleHealth отвечает на запросы к "/health"
-func handleHealth(c *gin.Context) {
-	logrus.Info("Health check request")
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+func test(c *gin.Context) {
+	logrus.Info("Test check request")
+	c.JSON(http.StatusOK, gin.H{"status": "test ok"})
 }
 
 // protected отвечает на запросы к "/protected" защищен oauth2
