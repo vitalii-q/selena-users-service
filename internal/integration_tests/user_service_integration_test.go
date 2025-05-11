@@ -2,10 +2,10 @@ package integration_tests
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"os/exec"
+
 	//"net/url"
-	"path/filepath"
 
 	//"io"
 
@@ -15,12 +15,13 @@ import (
 	//"path/filepath"
 	"testing"
 
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
+	//"github.com/golang-migrate/migrate/v4"
+	//"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/sirupsen/logrus"
+
+	//"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	//"github.com/stretchr/testify/assert"
@@ -58,7 +59,7 @@ func startPostgresContainer() (testcontainers.Container, error) {
 			"POSTGRES_DB":       "testdb",
 		},
 		WaitingFor: wait.ForListeningPort("5432"), // Ожидаем, что порт 5432 откроется
-		Files: []testcontainers.ContainerFile{
+		/*Files: []testcontainers.ContainerFile{
 			{
 				HostFilePath:      "../../db/migrations", // Путь на хосте с миграциями
 				ContainerFilePath: "/migrations",          // Путь в контейнере
@@ -67,7 +68,7 @@ func startPostgresContainer() (testcontainers.Container, error) {
 				HostFilePath:      "../../db/migrate_test.sh", // Путь на хосте с миграциями
 				ContainerFilePath: "/db/migrate_test.sh",        // Путь в контейнере
 			},
-		},
+		},*/
 	}
 
 	// Создаем и запускаем контейнер
@@ -92,7 +93,7 @@ func startPostgresContainer() (testcontainers.Container, error) {
 	return container, nil
 }
 
-func applyMigrations(container testcontainers.Container) error {
+/*func applyMigrations(container testcontainers.Container) error {
     // Логируем рабочую директорию
     cwd, err := os.Getwd()
     if err != nil {logrus.Fatalf("Ошибка получения текущей рабочей директории: %v", err)}
@@ -164,7 +165,7 @@ func applyMigrations(container testcontainers.Container) error {
 	}
 
 	return nil
-}
+}*/
 
 func TestMain(m *testing.M) {
 	// Загружаем переменные окружения
@@ -176,8 +177,16 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("Ошибка при запуске контейнера PostgreSQL: %v", err))
 	}
 
-	// Применяем миграции
-	if err := applyMigrations(container); err != nil {
+	// Применяем миграции через golang-migrate
+	/*if err := applyMigrations(container); err != nil {
+		panic(fmt.Sprintf("Ошибка применения миграций: %v", err))
+	}*/
+
+	// Запуск shell-скрипта для миграций
+	cmd := exec.Command("sh", "../../db/migrate_test.sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		panic(fmt.Sprintf("Ошибка применения миграций: %v", err))
 	}
 
