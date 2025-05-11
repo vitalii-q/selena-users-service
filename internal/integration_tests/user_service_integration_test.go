@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	//"net/url"
+	"path/filepath"
+
 	//"io"
 
 	//"io"
@@ -17,6 +20,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	//"github.com/stretchr/testify/assert"
@@ -60,8 +64,8 @@ func startPostgresContainer() (testcontainers.Container, error) {
 				ContainerFilePath: "/migrations",          // Путь в контейнере
 			},
 			{
-				HostFilePath:      "../../scripts/migrate_test.sh", // Путь на хосте с миграциями
-				ContainerFilePath: "/scripts/migrate_test.sh",        // Путь в контейнере
+				HostFilePath:      "../../db/migrate_test.sh", // Путь на хосте с миграциями
+				ContainerFilePath: "/db/migrate_test.sh",        // Путь в контейнере
 			},
 		},
 	}
@@ -89,6 +93,22 @@ func startPostgresContainer() (testcontainers.Container, error) {
 }
 
 func applyMigrations(container testcontainers.Container) error {
+    // Логируем рабочую директорию
+    cwd, err := os.Getwd()
+    if err != nil {logrus.Fatalf("Ошибка получения текущей рабочей директории: %v", err)}
+    logrus.Infof("Текущая рабочая директория: %s", cwd)
+
+	// Проверим наличие одного из файлов миграции
+	projectRoot := filepath.Join(cwd, "..", "..")
+	migrationPath := filepath.Join(projectRoot, "db", "migrations", "V1__create_users_table.up.sql")
+	
+	if _, err := os.Stat(migrationPath); err == nil {
+		logrus.Infof("Файл миграции найден: %s", migrationPath)
+	} else {
+		logrus.Errorf("Файл миграции не найден: %s", migrationPath)
+	}
+
+
 	// Получаем параметры для подключения к базе данных
 	port, err := container.MappedPort(context.Background(), "5432")
 	if err != nil {
@@ -112,12 +132,31 @@ func applyMigrations(container testcontainers.Container) error {
 	}
 
 	// Применяем миграции
+	migrationsPath := filepath.Join(projectRoot, "db", "migrations")
+	absMigrationsPath, err := filepath.Abs(migrationsPath) // absolute path to migrations
+	if err != nil {
+		return fmt.Errorf("не удалось получить абсолютный путь: %v", err)
+	}
+
+	sourceURL := fmt.Sprintf("file://%s", absMigrationsPath)
+	logrus.Infof("Абсолютный путь к миграциям (sourceURL): %s", sourceURL)
+
 	m, err := migrate.NewWithDatabaseInstance(
-		"file:///migrations", // Путь внутри контейнера
-		"postgres", driver,
+		sourceURL,
+		"postgres",
+		driver,
 	)
 	if err != nil {
 		return fmt.Errorf("не удалось создать миграции с экземпляром базы данных: %v", err)
+	}
+
+	entries, err := os.ReadDir(absMigrationsPath)
+	if err != nil {
+		return fmt.Errorf("не удалось прочитать директорию миграций: %v", err)
+	}
+
+	for _, entry := range entries {
+		logrus.Infof("Файл в директории миграций: %s", entry.Name())
 	}
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
