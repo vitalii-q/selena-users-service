@@ -3,30 +3,15 @@ package integration_tests
 import (
 	"context"
 	"fmt"
-	"os/exec"
-
-	//"net/url"
-
-	//"io"
-
-	//"io"
-
 	"os"
-	//"path/filepath"
+	//"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
-	//"github.com/golang-migrate/migrate/v4"
-	//"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
-	_ "github.com/jackc/pgx/v5/stdlib"
-
-	//"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-
-	//"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
-	//"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
@@ -34,31 +19,33 @@ import (
 )
 
 var dbPool *pgxpool.Pool
-var postgresContainer testcontainers.Container
+//var postgresContainer testcontainers.Container
 
 // Функция для загрузки переменных окружения
-func loadEnv() {
-	// Загружаем переменные окружения, которые могут быть использованы в тестах
+func loadEnv(host, port string) {
 	os.Setenv("DB_USER", "test_user")
 	os.Setenv("DB_PASSWORD", "test_password")
-	os.Setenv("DB_HOST", "localhost")
-	os.Setenv("DB_PORT", "5432")
+	os.Setenv("DB_HOST", host)
+	os.Setenv("DB_PORT", port)
 	os.Setenv("DB_NAME", "testdb")
 	os.Setenv("DB_SSLMODE", "disable")
 }
 
 // Функция для запуска PostgreSQL контейнера
-func startPostgresContainer() (testcontainers.Container, error) {
-	// Запуск контейнера PostgreSQL
-	req := testcontainers.ContainerRequest{
-		Image:        "postgres:13", // Можно выбрать другую версию PostgreSQL
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_USER":     "test_user",
-			"POSTGRES_PASSWORD": "test_password",
-			"POSTGRES_DB":       "testdb",
+func startPostgresContainer(ctx context.Context) (testcontainers.Container, string, string, error) {
+	// создаем и запускаем контейнер
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "postgres:13", // Можно выбрать другую версию PostgreSQL
+			ExposedPorts: []string{"5432/tcp"},
+			Env: map[string]string{
+				"POSTGRES_USER":     "test_user",
+				"POSTGRES_PASSWORD": "test_password",
+				"POSTGRES_DB":       "testdb",
+			},
+			WaitingFor: wait.ForListeningPort("5432"), // Ожидаем, что порт 5432 откроется
 		},
-		WaitingFor: wait.ForListeningPort("5432"), // Ожидаем, что порт 5432 откроется
+		Started: true,
 		/*Files: []testcontainers.ContainerFile{
 			{
 				HostFilePath:      "../../db/migrations", // Путь на хосте с миграциями
@@ -69,30 +56,26 @@ func startPostgresContainer() (testcontainers.Container, error) {
 				ContainerFilePath: "/db/migrate_test.sh",        // Путь в контейнере
 			},
 		},*/
-	}
-
-	// Создаем и запускаем контейнер
-	container, err := testcontainers.GenericContainer(context.Background(), testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
 	})
+
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 
-	// Получаем проброшенный порт для подключения
-	port, err := container.MappedPort(context.Background(), "5432")
+	port, err := container.MappedPort(ctx, "5432")
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 
-	// Устанавливаем переменные окружения для подключения
-	os.Setenv("DB_HOST", "localhost")
-	os.Setenv("DB_PORT", port.Port())
+	host, err := container.Host(ctx)
+	if err != nil {
+		return nil, "", "", err
+	}
 
-	return container, nil
+	return container, host, port.Port(), nil
 }
 
+// Функция для применения миграций через golang-migrate (не работает)
 /*func applyMigrations(container testcontainers.Container) error {
     // Логируем рабочую директорию
     cwd, err := os.Getwd()
@@ -167,41 +150,72 @@ func startPostgresContainer() (testcontainers.Container, error) {
 	return nil
 }*/
 
+// Функция для применения миграций через shell-скрипт
+func applyMigrations(ctx context.Context, db *pgxpool.Pool, migrationsPath string) error {
+	files, err := filepath.Glob(filepath.Join(migrationsPath, "*.up.sql"))
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		content, err := os.ReadFile(file)
+		if err != nil {
+			return err
+		}
+
+		queries := strings.Split(string(content), ";")
+		for _, query := range queries {
+			q := strings.TrimSpace(query)
+			if q != "" {
+				_, err := db.Exec(ctx, q)
+				if err != nil {
+					return fmt.Errorf("failed to execute query in %s: %w", file, err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// Основная функция для запуска тестов
 func TestMain(m *testing.M) {
-	// Загружаем переменные окружения
-	loadEnv()
+	ctx := context.Background()
 
 	// Запускаем PostgreSQL контейнер
-	container, err := startPostgresContainer()
+	container, host, port, err := startPostgresContainer(ctx)
 	if err != nil {
 		panic(fmt.Sprintf("Ошибка при запуске контейнера PostgreSQL: %v", err))
 	}
+	defer container.Terminate(ctx)
 
-	// Применяем миграции через golang-migrate
-	/*if err := applyMigrations(container); err != nil {
-		panic(fmt.Sprintf("Ошибка применения миграций: %v", err))
-	}*/
+	// Загружаем переменные окружения на основе контейнера
+	loadEnv(host, port)
 
-	// Запуск shell-скрипта для миграций
-	cmd := exec.Command("sh", "../../db/migrate_test.sh")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_NAME"),
+	)
+
+	dbPool, err = pgxpool.New(ctx, dbURL)
+	if err != nil {
+		panic(fmt.Sprintf("Не удалось подключиться к базе данных: %v", err))
+	}
+	defer dbPool.Close()
+
+	// Применяем миграции
+	if err := applyMigrations(ctx, dbPool, "../../database/migrations"); err != nil {
 		panic(fmt.Sprintf("Ошибка применения миграций: %v", err))
 	}
 
 	// Выполнение тестов
 	code := m.Run()
 
-	// Остановка контейнера после выполнения тестов
-	err = container.Terminate(context.Background())
-	if err != nil {
-		fmt.Printf("Ошибка при остановке контейнера: %v", err)
-	}
-
+	// Завершаем выполнение
 	os.Exit(code)
 }
-
 
 // Интеграционный тест для CreateUser
 func TestCreateUser(t *testing.T) {
