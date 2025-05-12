@@ -130,7 +130,7 @@ func applyMigrations(ctx context.Context, host, port string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	scriptPath := filepath.Join(rootDir, "db", "migrate_test2.sh")
+	scriptPath := filepath.Join(rootDir, "db", "migrate_test.sh")
 	migrationsDir := filepath.Join(rootDir, "db", "migrations")
 	logrus.Infof("Root directory: %s", rootDir)
 
@@ -138,8 +138,7 @@ func applyMigrations(ctx context.Context, host, port string) error {
 	cmd := exec.Command(scriptPath, dbUser, dbPassword, dbHost, dbPort, dbName, migrationsDir, rootDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	err = cmd.Run()
+	cmd.Run()
 
 	return nil
 }
@@ -150,8 +149,13 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to setup test container: %v", err)
 	}
+	if dbPool == nil {
+		log.Fatal("dbPool is nil, can't proceed with tests")
+	}
+	//logrus.Infof("dbPool: %#v", dbPool)
 	defer container.Terminate(context.Background())
 	defer dbPool.Close()
+	//logrus.Infof("dbPool2: %#v", dbPool)
 
 	// Запуск тестов
 	os.Exit(m.Run())
@@ -159,6 +163,8 @@ func TestMain(m *testing.M) {
 
 // Интеграционный тест для CreateUser
 func TestCreateUser(t *testing.T) {
+	logrus.Infof("dbPool3: %#v", dbPool)
+
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
