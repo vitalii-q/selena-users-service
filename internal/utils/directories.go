@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 )
 
-// FindProjectRoot ищет корневую директорию микросервиса (где находится go.mod)
-func FindProjectRoot() (string, error) {
+// getRootDir ищет корневую директорию микросервиса (где находится go.mod)
+func GetRootDir() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("не удалось получить текущую директорию: %w", err)

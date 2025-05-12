@@ -7,7 +7,30 @@ DB_HOST=$3
 DB_PORT=$4
 DB_NAME=$5
 
-echo "testtesttest"
+ROOT_DIR=$7
 
-# Пример применения миграций с использованием goose
-goose -dir $6 postgres "postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable" up
+
+#echo "psql credentionals> host:$DB_HOST port:$DB_PORT user:$DB_USER name:$DB_NAME"
+
+echo "Applying migrations from db/migrations/..."
+
+#echo "Current directory: $(pwd)"
+#ls -l $ROOT_DIR/db/migrations/
+
+# Применяем миграции и проверяем статус выполнения каждой
+all_migrations_successful=true
+
+for file in $ROOT_DIR/db/migrations/*.up.sql; do
+    echo "Applying migration: $file"
+    PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$file"
+    if [ $? -ne 0 ]; then
+        echo "Migration $file failed!"
+        all_migrations_successful=false
+    fi
+done
+
+if $all_migrations_successful; then
+    echo "Migrations applied successfully!"
+else
+    echo "Some migrations failed."
+fi

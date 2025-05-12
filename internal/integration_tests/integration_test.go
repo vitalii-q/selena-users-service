@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	//"path/filepath"
 	//"strings"
@@ -94,7 +95,7 @@ func setupTestContainer() (container testcontainers.Container, dbPool *pgxpool.P
 	}
 
 	// Применяем миграции
-	err = applyMigrations(ctx, host, port.Port(), "../../db/migrations")
+	err = applyMigrations(ctx, host, port.Port())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to apply migrations: %w", err)
 	}
@@ -113,14 +114,9 @@ func testDBconnection(ctx context.Context, dbPool *pgxpool.Pool) error {
 }
 
 // Функция для применения миграций через shell-скрипт
-func applyMigrations(ctx context.Context, host, port, migrationsDir string) error {
-	// Получаем конфигурацию подключения из dbPool
-    //config := dbPool.Config()
-
-	//logrus.Infof("obj: %#v", config)
-
-	logrus.Infof("Host: %s", host)
-	logrus.Infof("Port: %s", port)
+func applyMigrations(ctx context.Context, host, port string) error {
+	//logrus.Infof("Host: %s", host)
+	//logrus.Infof("Port: %s", port)
 
     // Извлекаем параметры подключения
     dbUser := "test_user"
@@ -129,17 +125,22 @@ func applyMigrations(ctx context.Context, host, port, migrationsDir string) erro
 	dbHost := host
     dbPort := port
 
+	// Получаем root директорию
+	rootDir, err := utils.GetRootDir()
+	if err != nil {
+		log.Fatal(err)
+	}
+	scriptPath := filepath.Join(rootDir, "db", "migrate_test2.sh")
+	migrationsDir := filepath.Join(rootDir, "db", "migrations")
+	logrus.Infof("Root directory: %s", rootDir)
+
 	// Запускаем shell-скрипт для применения миграций
-	cmd := exec.Command("../../db/migrate_test2.sh", dbUser, dbPassword, dbHost, dbPort, dbName, migrationsDir)
+	cmd := exec.Command(scriptPath, dbUser, dbPassword, dbHost, dbPort, dbName, migrationsDir, rootDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("ошибка выполнения скрипта миграций: %w", err)
-	}
+	err = cmd.Run()
 
-	fmt.Println("Миграции успешно применены.")
 	return nil
 }
 
