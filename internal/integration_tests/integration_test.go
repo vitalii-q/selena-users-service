@@ -3,13 +3,16 @@ package integration_tests
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
-	//"os/exec"
-	"path/filepath"
-	"strings"
+	"os/exec"
+
+	//"path/filepath"
+	//"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -32,20 +35,23 @@ func loadEnv(host, port string) {
 }
 
 // Функция для запуска PostgreSQL контейнера
-func startPostgresContainer(ctx context.Context) (testcontainers.Container, string, string, error) {
-	// создаем и запускаем контейнер
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres:13", // Можно выбрать другую версию PostgreSQL
-			ExposedPorts: []string{"5432/tcp"},
-			Env: map[string]string{
-				"POSTGRES_USER":     "test_user",
-				"POSTGRES_PASSWORD": "test_password",
-				"POSTGRES_DB":       "testdb",
-			},
-			WaitingFor: wait.ForListeningPort("5432"), // Ожидаем, что порт 5432 откроется
+func setupTestContainer() (container testcontainers.Container, dbPool *pgxpool.Pool, err error) {
+	ctx := context.Background()
+
+	// Запуск контейнера
+	req := testcontainers.ContainerRequest{
+		Image:        "postgres:15-alpine",
+		ExposedPorts: []string{"5432/tcp"},
+		Env: map[string]string{
+			"POSTGRES_DB":       "test_db",
+			"POSTGRES_USER":     "test_user",
+			"POSTGRES_PASSWORD": "test_password",
 		},
-		Started: true,
+		WaitingFor: wait.ForListeningPort("5432/tcp"),
+	}
+	container, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
 		/*Files: []testcontainers.ContainerFile{
 			{
 				HostFilePath:      "../../db/migrations", // Путь на хосте с миграциями
@@ -57,22 +63,126 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, stri
 			},
 		},*/
 	})
-
 	if err != nil {
-		return nil, "", "", err
+		return nil, nil, err
 	}
 
+	// Получаем порт
 	port, err := container.MappedPort(ctx, "5432")
 	if err != nil {
-		return nil, "", "", err
+		return nil, nil, err
 	}
 
 	host, err := container.Host(ctx)
 	if err != nil {
-		return nil, "", "", err
+		return nil, nil, err
 	}
 
-	return container, host, port.Port(), nil
+	// Формируем URL
+	dbURL := fmt.Sprintf("postgres://test_user:test_password@%s:%s/test_db?sslmode=disable", host, port.Port())
+	//logrus.Infof("Подключение к БД testcontainers: %s", dbURL)
+
+	// Создаём pool
+	dbPool, err = pgxpool.New(ctx, dbURL)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Проверка подключения
+	if err := testDBconnection(ctx, dbPool); err != nil {
+		return nil, nil, err
+	}
+
+	// Применяем миграции
+	err = applyMigrations(ctx, host, port.Port(), "../../db/migrations")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	return container, dbPool, nil
+}
+
+func testDBconnection(ctx context.Context, dbPool *pgxpool.Pool) error {
+	var version string
+	err := dbPool.QueryRow(ctx, "SELECT version()").Scan(&version)
+	if err != nil {
+		return fmt.Errorf("Ошибка подключения к БД: %w", err)
+	}
+	logrus.Infof("Успешное подключение к контейнеру PostgreSQL. Версия: %s", version)
+	return nil
+}
+
+// Функция для применения миграций через shell-скрипт
+func applyMigrations(ctx context.Context, host, port, migrationsDir string) error {
+	// Получаем конфигурацию подключения из dbPool
+    //config := dbPool.Config()
+
+	//logrus.Infof("obj: %#v", config)
+
+	logrus.Infof("Host: %s", host)
+	logrus.Infof("Port: %s", port)
+
+    // Извлекаем параметры подключения
+    dbUser := "test_user"
+    dbPassword := "test_password"
+    dbName := "test_db"
+	dbHost := host
+    dbPort := port
+
+	// Запускаем shell-скрипт для применения миграций
+	cmd := exec.Command("../../db/migrate_test2.sh", dbUser, dbPassword, dbHost, dbPort, dbName, migrationsDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("ошибка выполнения скрипта миграций: %w", err)
+	}
+
+	fmt.Println("Миграции успешно применены.")
+	return nil
+}
+
+// Основная функция для запуска тестов
+func TestMain(m *testing.M) {
+	container, dbPool, err := setupTestContainer()
+	if err != nil {
+		log.Fatalf("failed to setup test container: %v", err)
+	}
+	defer container.Terminate(context.Background())
+	defer dbPool.Close()
+
+	// Запуск тестов
+	os.Exit(m.Run())
+}
+
+// Интеграционный тест для CreateUser
+func TestCreateUser(t *testing.T) {
+	// Создаем объект passwordHasher (можно использовать реальную реализацию)
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+
+	// Создаем нового пользователя
+	user := models.User{
+		FirstName: "John",
+		LastName:  "Doe",
+		Email:     "john.doe@example.com",
+		Password:  "password123",
+		Role:      "user",
+	}
+
+	// Выполняем создание пользователя через сервис
+	createdUser, err := userService.CreateUser(user)
+
+	// Проверяем, что ошибок нет
+	assert.NoError(t, err)
+
+	// Проверяем, что пользователь был создан
+	assert.NotNil(t, createdUser.ID)
+	assert.Equal(t, user.FirstName, createdUser.FirstName)
+	assert.Equal(t, user.LastName, createdUser.LastName)
+	assert.Equal(t, user.Email, createdUser.Email)
+	assert.Equal(t, user.Role, createdUser.Role)
 }
 
 // Функция для применения миграций через golang-migrate (не работает)
@@ -150,98 +260,3 @@ func startPostgresContainer(ctx context.Context) (testcontainers.Container, stri
 	return nil
 }*/
 
-// Функция для применения миграций через shell-скрипт
-func applyMigrations(ctx context.Context, db *pgxpool.Pool, migrationsPath string) error {
-	files, err := filepath.Glob(filepath.Join(migrationsPath, "*.up.sql"))
-	if err != nil {
-		return err
-	}
-
-	for _, file := range files {
-		content, err := os.ReadFile(file)
-		if err != nil {
-			return err
-		}
-
-		queries := strings.Split(string(content), ";")
-		for _, query := range queries {
-			q := strings.TrimSpace(query)
-			if q != "" {
-				_, err := db.Exec(ctx, q)
-				if err != nil {
-					return fmt.Errorf("failed to execute query in %s: %w", file, err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// Основная функция для запуска тестов
-func TestMain(m *testing.M) {
-	ctx := context.Background()
-
-	// Запускаем PostgreSQL контейнер
-	container, host, port, err := startPostgresContainer(ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Ошибка при запуске контейнера PostgreSQL: %v", err))
-	}
-	defer container.Terminate(ctx)
-
-	// Загружаем переменные окружения на основе контейнера
-	loadEnv(host, port)
-
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
-	)
-
-	dbPool, err = pgxpool.New(ctx, dbURL)
-	if err != nil {
-		panic(fmt.Sprintf("Не удалось подключиться к базе данных: %v", err))
-	}
-	defer dbPool.Close()
-
-	// Применяем миграции
-	if err := applyMigrations(ctx, dbPool, "../../database/migrations"); err != nil {
-		panic(fmt.Sprintf("Ошибка применения миграций: %v", err))
-	}
-
-	// Выполнение тестов
-	code := m.Run()
-
-	// Завершаем выполнение
-	os.Exit(code)
-}
-
-// Интеграционный тест для CreateUser
-func TestCreateUser(t *testing.T) {
-	// Создаем объект passwordHasher (можно использовать реальную реализацию)
-	passwordHasher := &utils.BcryptHasher{}
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
-
-	// Создаем нового пользователя
-	user := models.User{
-		FirstName: "John",
-		LastName:  "Doe",
-		Email:     "john.doe@example.com",
-		Password:  "password123",
-		Role:      "user",
-	}
-
-	// Выполняем создание пользователя через сервис
-	createdUser, err := userService.CreateUser(user)
-
-	// Проверяем, что ошибок нет
-	assert.NoError(t, err)
-
-	// Проверяем, что пользователь был создан
-	assert.NotNil(t, createdUser.ID)
-	assert.Equal(t, user.FirstName, createdUser.FirstName)
-	assert.Equal(t, user.LastName, createdUser.LastName)
-	assert.Equal(t, user.Email, createdUser.Email)
-	assert.Equal(t, user.Role, createdUser.Role)
-}
