@@ -132,7 +132,10 @@ func applyMigrations(ctx context.Context, host, port string) error {
 
 // Основная функция для запуска тестов
 func TestMain(m *testing.M) {
-	container, dbPool, err := setupTestContainer()
+	var err error
+	var container testcontainers.Container
+
+	container, dbPool, err = setupTestContainer()
 	if err != nil {
 		log.Fatalf("failed to setup test container: %v", err)
 	}
@@ -142,7 +145,7 @@ func TestMain(m *testing.M) {
 	//logrus.Infof("dbPool: %#v", dbPool)
 	defer container.Terminate(context.Background())
 	defer dbPool.Close()
-	//logrus.Infof("dbPool2: %#v", dbPool)
+	//logrus.Infof("TestMain dbPool: %#v", dbPool)
 
 	// Запуск тестов
 	os.Exit(m.Run())

@@ -1,19 +1,17 @@
-package handlers_test
+package integration_tests
 
 import (
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	//"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
-var dbPool *pgxpool.Pool
-
 func TestCreateUser(t *testing.T) {
-	//logrus.Infof("dbPool3: %#v", dbPool)
+	//logrus.Infof("Test dbPool: %#v", dbPool)
 
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
