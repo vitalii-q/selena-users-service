@@ -56,7 +56,7 @@ func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
 	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at
-			  FROM users WHERE id = $1`
+		  FROM users WHERE id = $1 AND deleted_at IS NULL`
 
 	err := s.db.QueryRow(context.Background(), query, id.String()).Scan(
 		&user.ID, &user.FirstName, &user.LastName, &user.Email,

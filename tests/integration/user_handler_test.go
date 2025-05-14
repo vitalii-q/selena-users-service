@@ -1,14 +1,30 @@
 package integration_tests
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	//"github.com/sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
+
+// Изолированный роутинг что бы не затрагивать OAuth, /protected, /test
+func setupTestRouter(userHandler *handlers.UserHandler) *gin.Engine {
+	router := gin.Default()
+	router.GET("/users/:id", userHandler.GetUserHandler)
+	router.PUT("/users/:id", userHandler.UpdateUserHandler)
+	router.DELETE("/users/:id", userHandler.DeleteUserHandler)
+	return router
+}
 
 func TestCreateUser(t *testing.T) {
 	//logrus.Infof("Test dbPool: %#v", dbPool)
@@ -39,3 +55,94 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, user.Email, createdUser.Email)
 	assert.Equal(t, user.Role, createdUser.Role)
 }
+
+func TestGetUserHandler(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+
+	// Создаем тестового пользователя
+	user := models.User{
+		FirstName: "Jane",
+		LastName:  "Smith",
+		Email:     "jane.smith@example.com",
+		Password:  "securepassword",
+		Role:      "user",
+	}
+	createdUser, err := userService.CreateUser(user)
+	require.NoError(t, err)
+
+	router := setupTestRouter(userHandler)
+
+	req, _ := http.NewRequest("GET", "/users/"+createdUser.ID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var returnedUser models.User
+	err = json.Unmarshal(w.Body.Bytes(), &returnedUser)
+	require.NoError(t, err)
+
+	assert.Equal(t, createdUser.ID, returnedUser.ID)
+	assert.Equal(t, user.Email, returnedUser.Email)
+}
+
+func TestUpdateUserHandler(t *testing.T) {
+	// Создаем сервис и handler
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+
+	// Создаем пользователя
+	user := models.User{
+		FirstName: "Alice",
+		LastName:  "Smith",
+		Email:     "alice.smith@example.com",
+		Password:  "password123",
+		Role:      "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	router := setupTestRouter(userHandler)
+
+	// Обновляем имя
+	updatePayload := `{"first_name": "UpdatedName"}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(updatePayload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "UpdatedName")
+}
+
+func TestDeleteUserHandler(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+
+	user := models.User{
+		FirstName: "Bob",
+		LastName:  "Marley",
+		Email:     "bob.marley@example.com",
+		Password:  "password123",
+		Role:      "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	router := setupTestRouter(userHandler)
+
+	req, _ := http.NewRequest("DELETE", "/users/"+createdUser.ID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
+
+	// Проверим, что пользователь действительно удален
+	_, err := userService.GetUser(createdUser.ID)
+	assert.Error(t, err)
+}
+
