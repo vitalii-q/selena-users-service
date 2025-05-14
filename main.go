@@ -135,8 +135,6 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	//r.GET("/oauth2/authorize", authHandler.GetAuthorize)
 	//r.POST("/oauth2/token", authHandler.PostToken)
 
-	//r.POST("/login", authHandler.LoginHandler)
-
 	b, _ := json.Marshal(authHandler) // +
 	logrus.Debugf("authHandler: %s", string(b))
 
