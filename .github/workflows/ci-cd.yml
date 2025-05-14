@@ -74,7 +74,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run --rm ${{ secrets.USER_SERVICE_IMAGE_NAME }} echo "Container is running"
+          docker run --rm ghcr.io/${{ github.repository_owner }}/selena/users-service:latest echo "Container is running"
           
       - name: Push Docker image to GHCR
         run: |
