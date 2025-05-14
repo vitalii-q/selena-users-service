@@ -25,16 +25,6 @@ import (
 var dbPool *pgxpool.Pool
 //var postgresContainer testcontainers.Container
 
-// Функция для загрузки переменных окружения
-func loadEnv(host, port string) {
-	os.Setenv("DB_USER", "test_user")
-	os.Setenv("DB_PASSWORD", "test_password")
-	os.Setenv("DB_HOST", host)
-	os.Setenv("DB_PORT", port)
-	os.Setenv("DB_NAME", "testdb")
-	os.Setenv("DB_SSLMODE", "disable")
-}
-
 // Функция для запуска PostgreSQL контейнера
 func setupTestContainer() (container testcontainers.Container, dbPool *pgxpool.Pool, err error) {
 	ctx := context.Background()
