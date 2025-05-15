@@ -75,6 +75,30 @@ func TestCreateUserWithEmptyFields(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Validation failed")
 }
 
+func TestCreateUserWithDuplicateEmail(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	user := models.User{
+		FirstName: "Alex", LastName: "Jones",
+		Email: "alex.jones@example.com", Password: "pass123", Role: "user",
+	}
+	_, _ = userService.CreateUser(user)
+
+	payload := `{"first_name": "Another", "last_name": "User", "email": "alex.jones@example.com", "password": "anotherpass", "role": "user"}`
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.POST("/users", userHandler.CreateUserHandler)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "duplicate")
+}
+
 func TestGetUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
