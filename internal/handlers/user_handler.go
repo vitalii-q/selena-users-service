@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
+
 	//"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -147,7 +150,11 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	// Вызываем сервис для удаления пользователя
 	err = h.service.DeleteUser(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if errors.Is(err, sql.ErrNoRows) || err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 

@@ -116,10 +116,13 @@ func (s *UserServiceImpl) UpdateUser(id uuid.UUID, updatedUser models.User) (mod
 // DeleteUser - удаление пользователя по ID
 func (s *UserServiceImpl) DeleteUser(id uuid.UUID) error {
 	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1`
-	_, err := s.db.Exec(context.Background(), query, id)
-
+	result, err := s.db.Exec(context.Background(), query, id)
 	if err != nil {
 		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return errors.New("user not found") 
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import (
 
 	//"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
@@ -212,3 +213,17 @@ func TestDeleteUserHandler(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestDeleteNonExistingUser(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	nonExistingID := uuid.New()
+
+	req, _ := http.NewRequest("DELETE", "/users/"+nonExistingID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
