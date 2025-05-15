@@ -146,6 +146,20 @@ func TestGetNonExistingUser(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
+func TestGetUserWithInvalidUUID(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	req, _ := http.NewRequest("GET", "/users/not-a-valid-uuid", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid UUID format")
+}
+
 func TestUpdateUserHandler(t *testing.T) {
 	// Создаем сервис и handler
 	passwordHasher := &utils.BcryptHasher{}
