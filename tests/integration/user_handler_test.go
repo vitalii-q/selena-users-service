@@ -161,6 +161,30 @@ func TestUpdateUserHandler(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid first name")
 }*/
 
+func TestUpdateUserWithInvalidEmail(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	user := models.User{
+		FirstName: "Lena", LastName: "Ivanova",
+		Email: "lena.ivanova@example.com", Password: "pass123", Role: "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	payload := `{"email": "invalid-email"}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid email")
+}
+
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
