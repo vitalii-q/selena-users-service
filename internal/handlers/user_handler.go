@@ -128,6 +128,10 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 	// Обновляем пользователя
 	updatedUser, err = h.service.UpdateUser(id, updatedUser)
 	if err != nil {
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

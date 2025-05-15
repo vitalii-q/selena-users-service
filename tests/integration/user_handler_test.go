@@ -1,6 +1,7 @@
 package integration_tests
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -237,6 +238,28 @@ func TestUpdateUserWithInvalidEmail(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid email")
+}
+
+func TestUpdateNonExistingUser(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	nonExistingID := uuid.New()
+
+	updatePayload := map[string]string{
+		"first_name": "NewName",
+		"email":      "newemail@example.com",
+	}
+	body, _ := json.Marshal(updatePayload)
+
+	req, _ := http.NewRequest("PUT", "/users/"+nonExistingID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestDeleteUserHandler(t *testing.T) {
