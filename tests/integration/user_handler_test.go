@@ -107,6 +107,21 @@ func TestGetUserHandler(t *testing.T) {
 	assert.Equal(t, user.Email, returnedUser.Email)
 }
 
+func TestGetNonExistingUser(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	nonExistingID := uuid.New()
+
+	req, _ := http.NewRequest("GET", "/users/"+nonExistingID.String(), nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
 func TestUpdateUserHandler(t *testing.T) {
 	// Создаем сервис и handler
 	passwordHasher := &utils.BcryptHasher{}
