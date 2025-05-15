@@ -56,6 +56,24 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, user.Role, createdUser.Role)
 }
 
+func TestCreateUserWithEmptyFields(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	payload := `{"first_name": "", "last_name": "", "email": "", "password": "", "role": ""}`
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.POST("/users", userHandler.CreateUserHandler)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Validation failed")
+}
+
 func TestGetUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
@@ -118,6 +136,30 @@ func TestUpdateUserHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "UpdatedName")
 }
+
+/*func TestUpdateUserWithEmptyFields(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	user := models.User{
+		FirstName: "Ivan", LastName: "Petrov",
+		Email: "ivan.petrov@example.com", Password: "securepass", Role: "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	payload := `{"first_name": "", "email": ""}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid first name")
+}*/
 
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}

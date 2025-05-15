@@ -119,7 +119,7 @@ func applyMigrations(ctx context.Context, host, port string) error {
 	}
 	scriptPath := filepath.Join(rootDir, "db", "migrate_test.sh")
 	migrationsDir := filepath.Join(rootDir, "db", "migrations")
-	logrus.Infof("Root directory: %s", rootDir)
+	//logrus.Infof("Root directory: %s", rootDir)
 
 	// Запускаем shell-скрипт для применения миграций
 	cmd := exec.Command(scriptPath, dbUser, dbPassword, dbHost, dbPort, dbName, migrationsDir, rootDir)
