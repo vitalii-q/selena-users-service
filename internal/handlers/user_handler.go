@@ -100,6 +100,11 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 		return
 	}
 
+	if updatedUser.ID != uuid.Nil && updatedUser.ID != id {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot update ID"})
+		return
+	}
+
 	// Валидируем только те поля, которые присутствуют в запросе
 	if updatedUser.FirstName != "" {
 		if err := h.validator.Var(updatedUser.FirstName, "required"); err != nil {

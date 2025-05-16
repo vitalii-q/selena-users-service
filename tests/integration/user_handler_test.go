@@ -2,6 +2,7 @@ package integration_tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -239,6 +240,32 @@ func TestUpdateUserWithInvalidEmail(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid email")
 }
 
+func TestUpdateUser_ForbiddenFieldUpdate(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Создаем пользователя для обновления
+	user := models.User{
+		FirstName: "Ivan", LastName: "Petrov",
+		Email: "ivan.petrov@example.com", Password: "pass123", Role: "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	// Попытка обновить поле ID, которое запрещено менять
+	payload := fmt.Sprintf(`{"id": "%s", "firstName": "IvanUpdated"}`, uuid.New().String())
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "cannot update ID")  // Сообщение об ошибке можно поменять под свою реализацию
+}
+
 func TestUpdateUser_InvalidJSON(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
@@ -264,7 +291,6 @@ func TestUpdateUser_InvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid request")
 }
-
 
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
