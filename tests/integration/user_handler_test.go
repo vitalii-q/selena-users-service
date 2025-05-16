@@ -292,6 +292,35 @@ func TestUpdateUser_InvalidJSON(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid request")
 }
 
+func TestUpdateUser_WeakPasswordRejected(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Создаем пользователя
+	user := models.User{
+		FirstName: "Anna",
+		LastName:  "Smith",
+		Email:     "anna.smith@example.com",
+		Password:  "securePass123",
+		Role:      "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	// Обновляем с слишком коротким паролем
+	payload := `{"password": "123"}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid password")
+}
+
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
