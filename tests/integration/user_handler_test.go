@@ -59,6 +59,31 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, user.Role, createdUser.Role)
 }
 
+func TestCreateUser_InvalidEmail(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Валидные поля, но email некорректный
+	payload := `{
+		"firstName": "John",
+		"lastName": "Doe",
+		"email": "invalid-email", 
+		"password": "strongPass123"
+	}`
+
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Validation failed")
+}
+
+
 func TestCreateUserWithEmptyFields(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
