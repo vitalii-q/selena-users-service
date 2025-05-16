@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	//"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func setupTestRouter(userHandler *handlers.UserHandler) *gin.Engine {
 }
 
 func TestCreateUser(t *testing.T) {
-	//logrus.Infof("Test dbPool: %#v", dbPool)
+	logrus.Infof("Test dbPool: %#v", dbPool)
 
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
