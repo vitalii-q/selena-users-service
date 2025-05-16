@@ -32,3 +32,5 @@ Thumbs.db
 
 # Игнорировать air 
 .air.toml
+
+bin/main

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +28,7 @@ func setupTestRouter(userHandler *handlers.UserHandler) *gin.Engine {
 }
 
 func TestCreateUser(t *testing.T) {
-	logrus.Infof("Test dbPool: %#v", dbPool)
+	//logrus.Infof("Test dbPool: %#v", dbPool)
 
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
@@ -238,6 +238,33 @@ func TestUpdateUserWithInvalidEmail(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid email")
 }
+
+func TestUpdateUser_InvalidJSON(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Создаем пользователя
+	user := models.User{
+		FirstName: "Ivan", LastName: "Petrov",
+		Email: "ivan.petrov@example.com", Password: "secure123", Role: "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	// Невалидный JSON (пропущена кавычка)
+	invalidJSON := `{"first_name": "Invalid}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(invalidJSON))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid request")
+}
+
 
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
