@@ -3,12 +3,13 @@ package integration_tests
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func setupTestRouter(userHandler *handlers.UserHandler) *gin.Engine {
 }
 
 func TestCreateUser(t *testing.T) {
-	logrus.Infof("Test dbPool: %#v", dbPool)
+	//logrus.Infof("Test dbPool: %#v", dbPool)
 
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
@@ -58,6 +59,31 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, user.Email, createdUser.Email)
 	assert.Equal(t, user.Role, createdUser.Role)
 }
+
+func TestCreateUser_InvalidEmail(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Валидные поля, но email некорректный
+	payload := `{
+		"firstName": "John",
+		"lastName": "Doe",
+		"email": "invalid-email", 
+		"password": "strongPass123"
+	}`
+
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Validation failed")
+}
+
 
 func TestCreateUserWithEmptyFields(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
@@ -99,24 +125,27 @@ func TestCreateUserWithDuplicateEmail(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "duplicate")
 }
 
-func TestCreateUser_InvalidJSON(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
-	// Создаем сервис и хендлер
+func TestCreateUser_ShortPassword(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
 	userHandler := handlers.NewUserHandler(userService)
 	router := setupTestRouter(userHandler)
 
-	// Невалидный JSON (например, пропущена закрывающая фигурная скобка)
-	invalidJSON := `{"email": "invalid@example.com", "password": "123456"`
+	payload := `{
+		"firstName": "Ivan",
+		"lastName": "Petrov",
+		"email": "ivan.short@example.com",
+		"password": "123"
+	}`
 
-	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer([]byte(invalidJSON)))
+	req, _ := http.NewRequest("POST", "/users", strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Validation failed")
 }
 
 func TestGetUserHandler(t *testing.T) {
@@ -259,26 +288,85 @@ func TestUpdateUserWithInvalidEmail(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Invalid email")
 }
 
-func TestUpdateNonExistingUser(t *testing.T) {
+func TestUpdateUser_ForbiddenFieldUpdate(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
 	userHandler := handlers.NewUserHandler(userService)
 	router := setupTestRouter(userHandler)
 
-	nonExistingID := uuid.New()
-
-	updatePayload := map[string]string{
-		"first_name": "NewName",
-		"email":      "newemail@example.com",
+	// Создаем пользователя для обновления
+	user := models.User{
+		FirstName: "Ivan", LastName: "Petrov",
+		Email: "ivan.petrov@example.com", Password: "pass123", Role: "user",
 	}
-	body, _ := json.Marshal(updatePayload)
+	createdUser, _ := userService.CreateUser(user)
 
-	req, _ := http.NewRequest("PUT", "/users/"+nonExistingID.String(), bytes.NewBuffer(body))
+	// Попытка обновить поле ID, которое запрещено менять
+	payload := fmt.Sprintf(`{"id": "%s", "firstName": "IvanUpdated"}`, uuid.New().String())
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
+
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "cannot update ID")  // Сообщение об ошибке можно поменять под свою реализацию
+}
+
+func TestUpdateUser_InvalidJSON(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Создаем пользователя
+	user := models.User{
+		FirstName: "Ivan", LastName: "Petrov",
+		Email: "ivan.petrov@example.com", Password: "secure123", Role: "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	// Невалидный JSON (пропущена кавычка)
+	invalidJSON := `{"first_name": "Invalid}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(invalidJSON))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid request")
+}
+
+func TestUpdateUser_ShortPasswordRejected(t *testing.T) {
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Создаем пользователя
+	user := models.User{
+		FirstName: "Anna",
+		LastName:  "Smith",
+		Email:     "anna.smith@example.com",
+		Password:  "securePass123",
+		Role:      "user",
+	}
+	createdUser, _ := userService.CreateUser(user)
+
+	// Обновляем с слишком коротким паролем
+	payload := `{"password": "123"}`
+
+	req, _ := http.NewRequest("PUT", "/users/"+createdUser.ID.String(), strings.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Invalid password")
 }
 
 func TestDeleteUserHandler(t *testing.T) {

@@ -92,7 +92,16 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 
 	var updatedUser models.User
 	if err := c.ShouldBindJSON(&updatedUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		logrus.WithError(err).Error("Invalid JSON request") // лог в консоль
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request",
+			"details": "Malformed JSON or wrong field types",
+		})
+		return
+	}
+
+	if updatedUser.ID != uuid.Nil && updatedUser.ID != id {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot update ID"})
 		return
 	}
 
