@@ -22,6 +22,7 @@ import (
 // Изолированный роутинг что бы не затрагивать OAuth, /protected, /test
 func setupTestRouter(userHandler *handlers.UserHandler) *gin.Engine {
 	router := gin.Default()
+	router.POST("/users", userHandler.CreateUserHandler)
 	router.GET("/users/:id", userHandler.GetUserHandler)
 	router.PUT("/users/:id", userHandler.UpdateUserHandler)
 	router.DELETE("/users/:id", userHandler.DeleteUserHandler)
@@ -69,7 +70,6 @@ func TestCreateUserWithEmptyFields(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.POST("/users", userHandler.CreateUserHandler)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -93,11 +93,30 @@ func TestCreateUserWithDuplicateEmail(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 
 	w := httptest.NewRecorder()
-	router.POST("/users", userHandler.CreateUserHandler)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "duplicate")
+}
+
+func TestCreateUser_InvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Создаем сервис и хендлер
+	passwordHasher := &utils.BcryptHasher{}
+	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
+	userHandler := handlers.NewUserHandler(userService)
+	router := setupTestRouter(userHandler)
+
+	// Невалидный JSON (например, пропущена закрывающая фигурная скобка)
+	invalidJSON := `{"email": "invalid@example.com", "password": "123456"`
+
+	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer([]byte(invalidJSON)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestGetUserHandler(t *testing.T) {
