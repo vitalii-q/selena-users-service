@@ -163,9 +163,9 @@ func protected(c *gin.Context) {
 
 func getDatabaseURL() string {
 	// Собираем строку подключения вручную
-	dbUser := os.Getenv("POSTGRES_USER")
-	dbPassword := os.Getenv("POSTGRES_PASSWORD")
-	dbName := os.Getenv("POSTGRES_NAME")
+	dbUser := os.Getenv("USERS_POSTGRES_DB_USER")
+	dbPassword := os.Getenv("USERS_POSTGRES_DB_PASS")
+	dbName := os.Getenv("USERS_POSTGRES_DB_NAME")
 	dbPort := os.Getenv("POSTGRES_PORT")
 
 	if dbUser == "" || dbPassword == "" || dbName == "" || dbPort == "" {

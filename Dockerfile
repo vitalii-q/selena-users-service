@@ -28,6 +28,7 @@ WORKDIR /app/users-service
 COPY --from=builder /app/bin/main /app/bin/main
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /go/bin/air /usr/local/bin/air
+COPY --from=builder /app/users-service/db /app/users-service/db
 
 # Устанавливаем Go в финальный контейнер (для air)
 RUN apk add --no-cache go
@@ -44,4 +45,4 @@ ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
 EXPOSE ${USER_SERVICE_PORT}
 
-CMD ["/app/bin/main"]
+#ENTRYPOINT ["./_docker/entrypoint.sh"]
