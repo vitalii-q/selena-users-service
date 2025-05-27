@@ -15,7 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
 
-	"github.com/vitalii-q/selena-users-service/config"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
@@ -88,25 +87,6 @@ func setupLogger() {
 		ForceColors:   true,
 	})
 	logrus.SetOutput(os.Stdout)
-}
-
-// getPort получает порт из переменной окружения или использует значение по умолчанию
-func getPort() string {
-	// Получаем путь к файлу конфигурации из переменной окружения
-	configPath := os.Getenv("CONFIG_PATH")
-	if configPath == "" {
-		// Если переменная окружения не задана, используем путь по умолчанию
-		configPath = "/config/config.yaml"
-	}
-
-	// Загружаем конфигурацию
-	cfg, err := config.LoadConfig(configPath)
-	if err != nil {
-		logrus.Fatalf("Error loading config: %v", err)
-	}
-
-	port := cfg.Server.Port
-	return port
 }
 
 // setupRouter инициализирует маршрутизатор и эндпоинты
