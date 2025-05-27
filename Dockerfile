@@ -44,5 +44,3 @@ RUN apk add --no-cache git
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
 EXPOSE ${USER_SERVICE_PORT}
-
-#ENTRYPOINT ["./_docker/entrypoint.sh"]
