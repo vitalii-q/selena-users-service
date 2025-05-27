@@ -166,14 +166,15 @@ func getDatabaseURL() string {
 	dbUser := os.Getenv("USERS_POSTGRES_DB_USER")
 	dbPassword := os.Getenv("USERS_POSTGRES_DB_PASS")
 	dbName := os.Getenv("USERS_POSTGRES_DB_NAME")
-	dbPort := os.Getenv("POSTGRES_PORT")
+	dbHost := os.Getenv("USERS_POSTGRES_DB_HOST")
+	dbPort := os.Getenv("USERS_POSTGRES_DB_PORT_INNER")
 
 	if dbUser == "" || dbPassword == "" || dbName == "" || dbPort == "" {
-		log.Fatal("One or more required database environment variables are missing")
+		log.Fatal("One or more required database environment variables are missing (main.go)")
 	}
 
-	databaseUrl := fmt.Sprintf("postgres://%s:%s@postgres:5432/%s?sslmode=disable",
-		dbUser, dbPassword, dbName)
+	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	return databaseUrl
 }
