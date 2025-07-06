@@ -30,6 +30,9 @@ COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /go/bin/air /usr/local/bin/air
 COPY --from=builder /app/users-service/db /app/users-service/db
 
+# Копируем скрипты entrypoint
+COPY ./_docker /app/users-service/_docker
+
 # Устанавливаем Go в финальный контейнер (для air)
 RUN apk add --no-cache go
 
@@ -45,4 +48,4 @@ ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
 EXPOSE ${USER_SERVICE_PORT}
 
-CMD ["/app/bin/main"]
+ENTRYPOINT ["/app/users-service/_docker/entrypoint.sh"]

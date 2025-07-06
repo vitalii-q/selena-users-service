@@ -42,6 +42,15 @@ echo "📁 USERS_SERVICE_ROOT=${USERS_SERVICE_ROOT}"
 # Выполняем миграции
 sh "${USERS_SERVICE_ROOT}/db/migrate.sh"
 
-# Запускаем с air
-echo "🚀 Starting users-service with Air..."
-exec air -c .air.toml
+echo "--- "
+echo "$APP_ENV"
+echo " ---"
+
+# Запуск приложения в зависимости от режима
+if [ "$PROJECT_SUFFIX" = "dev" ]; then
+  echo "🚀 Starting users-service with Air (development mode)..."
+  exec air -c .air.toml
+else
+  echo "🚀 Starting users-service with compiled binary (production mode)..."
+  exec /app/bin/main
+fi
