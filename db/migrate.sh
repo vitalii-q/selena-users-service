@@ -3,9 +3,9 @@
 set -e # Падение скрипта при любой ошибке
 
 # Подключаем переменные окружения из .env
-set -o allexport
-source ".env"
-set +o allexport
+#set -o allexport
+#source ".env"
+#set +o allexport
 
 # Определяем, где запускаемся: в контейнере или на хосте
 if grep -q docker /proc/1/cgroup || [ -f /.dockerenv ]; then

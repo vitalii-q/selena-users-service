@@ -46,6 +46,6 @@ RUN apk add --no-cache git
 # Устанавливаем переменную окружения для конфиг-файла
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
-EXPOSE ${USER_SERVICE_PORT}
+EXPOSE ${USERS_SERVICE_PORT}
 
 ENTRYPOINT ["/app/users-service/_docker/entrypoint.sh"]
