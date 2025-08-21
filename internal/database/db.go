@@ -19,7 +19,10 @@ func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 		}
 	}
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", user, password, host, port, dbname)
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		user, password, host, port, dbname, sslmode,
+	)
 
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
