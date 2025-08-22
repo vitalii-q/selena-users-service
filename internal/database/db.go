@@ -25,7 +25,9 @@ func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 		user, password, host, port, dbname, sslmode,
 	)
 
-	logrus.Infof("Connecting to database with connection string: %s", connStr)
+	fmt.Println("Connecting to database with connection string 1:", connStr)
+	log.Printf("Connecting to database with connection string 2: %s", connStr)
+	logrus.Infof("Connecting to database with connection string 3: %s", connStr)
 
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
