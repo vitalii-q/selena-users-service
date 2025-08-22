@@ -24,6 +24,8 @@ func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 		user, password, host, port, dbname, sslmode,
 	)
 
+	log.Printf("Connecting to database with connection string: %s", connStr)
+
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
