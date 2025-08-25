@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/sirupsen/logrus"
 )
 
 func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
@@ -25,14 +24,9 @@ func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 		user, password, host, port, dbname, sslmode,
 	)
 
-	fmt.Println("Connecting to database with connection string 1:", connStr)
-	log.Printf("Connecting to database with connection string 2: %s", connStr)
-	logrus.Infof("Connecting to database with connection string 3: %s", connStr)
-
 	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
-		//log.Fatalf("Failed to connect to database: %v", err)
-		logrus.Errorf("Failed to connect to DB: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 		return nil, err
 	}
 	log.Println("Connected to database successfully")
