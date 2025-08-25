@@ -43,6 +43,9 @@ RUN chmod +x /app/bin/main
 RUN apk update && apk add postgresql-client
 RUN apk add --no-cache git
 
+# Устанавливаем curl для отладки внутри контейнера
+RUN apk add --no-cache curl
+
 # Устанавливаем переменную окружения для конфиг-файла
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
