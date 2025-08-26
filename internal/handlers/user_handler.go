@@ -34,7 +34,7 @@ func NewUserHandler(service services.UserServiceInterface) *UserHandler {
 func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	var user models.User
 
-	//logrus.Info("TEST 1")
+	logrus.Info("TEST 1")
 
 	if err := c.ShouldBindJSON(&user); err != nil {
 		logrus.WithError(err).Error("Invalid JSON request")
