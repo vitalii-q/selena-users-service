@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 
 	//"strconv"
 
@@ -41,6 +42,10 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": "Invalid JSON request"})
 		return
 	}
+
+	// Логируем значение SSLMODE из env
+	sslMode := os.Getenv("USERS_POSTGRES_DB_SSLMODE")
+	logrus.Infof("SSL mode from env: %s", sslMode)
 
 	//logrus.Info("TEST 2")
 
