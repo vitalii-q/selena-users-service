@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// does not work, connection is made via getDatabaseURL() in main.go
 func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 	sslmode := os.Getenv("USERS_POSTGRES_DB_SSLMODE")
 	if sslmode == "" {
@@ -20,8 +21,8 @@ func ConnectDB(host, port, user, password, dbname string) (*pgx.Conn, error) {
 	}
 
 	connStr := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=require",
-		user, password, host, port, dbname,
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		user, password, host, port, dbname, sslmode,
 	)
 
 	conn, err := pgx.Connect(context.Background(), connStr)

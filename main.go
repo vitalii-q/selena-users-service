@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+
 	//"encoding/json"
 	"fmt"
 	"log"
@@ -37,7 +38,7 @@ func main() {
 	defer dbPool.Close() // Закроется корректно при завершении программы
 
 	// Создаём хешер паролей (обычный)
-	passwordHasher := &utils.BcryptHasher{} 
+	passwordHasher := &utils.BcryptHasher{}
 
 	// Создаём сервис и обработчики
 	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
@@ -153,8 +154,17 @@ func getDatabaseURL() string {
 		log.Fatal("One or more required database environment variables are missing (main.go)")
 	}
 
-	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	sslmode := os.Getenv("USERS_POSTGRES_DB_SSLMODE")
+	if sslmode == "" {
+		if os.Getenv("PROJECT_SUFFIX") == "prod" {
+			sslmode = "require"
+		} else {
+			sslmode = "disable"
+		}
+	}
+
+	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPassword, dbHost, dbPort, dbName, sslmode)
 
 	return databaseUrl
 }
