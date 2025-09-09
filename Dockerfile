@@ -16,8 +16,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/main ./main.go
 # Installing migrate tool during build
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
+# Installing git for building air
+RUN apk add --no-cache git
+
 # Устанавливаем air для горячей перезагрузки
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.62.0
 
 # Stage 2: Final image
 FROM golang:1.24.0-alpine AS final
