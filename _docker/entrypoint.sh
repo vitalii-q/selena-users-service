@@ -42,9 +42,10 @@ echo "📁 USERS_SERVICE_ROOT=${USERS_SERVICE_ROOT}"
 # Выполняем миграции
 sh "${USERS_SERVICE_ROOT}/db/migrate.sh"
 
-echo "--- "
-echo "$APP_ENV"
-echo " ---"
+# --- New: запускаем сиды после миграций ---
+echo "🌱 Seeding database..."
+go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+echo "✅ Seeding finished!"
 
 # Запуск приложения в зависимости от режима
 if [ "$PROJECT_SUFFIX" = "dev" ]; then
