@@ -26,7 +26,7 @@ func main() {
         log.Fatalf("Failed to connect to DB: %v", err)
     }
 
-    // Авто-маршрутизация моделей (чтобы таблицы были на месте)
+    // Auto-routing of models (so that tables are in place)
     db.AutoMigrate(&models.User{})
 
     // run seeds

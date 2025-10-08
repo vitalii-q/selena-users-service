@@ -5,7 +5,7 @@ WORKDIR /app/users-service
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Устанавливаем uuid ДО сборки проекта
+# Set the uuid BEFORE building the project
 RUN go get github.com/google/uuid
 RUN go mod tidy
 
@@ -19,7 +19,7 @@ RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate
 # Installing git for building air
 RUN apk add --no-cache git
 
-# Устанавливаем air для горячей перезагрузки
+# Installing Air for a hot reboot
 RUN go install github.com/air-verse/air@v1.62.0
 
 # Stage 2: Final image
@@ -27,29 +27,29 @@ FROM golang:1.24.0-alpine AS final
 
 WORKDIR /app/users-service
 
-# Копируем бинарник и необходимые файлы из билд-образа
+# Copy the binary and necessary files from the build image
 COPY --from=builder /app/bin/main /app/bin/main
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /go/bin/air /usr/local/bin/air
 COPY --from=builder /app/users-service/db /app/users-service/db
 
-# Копируем скрипты entrypoint
+# Copy the entrypoint scripts
 COPY ./_docker /app/users-service/_docker
 
-# Устанавливаем Go в финальный контейнер (для air)
+# Install Go in the final container (for air)
 RUN apk add --no-cache go
 
-# Добавляем права на выполнение
+# Add execution rights
 RUN chmod +x /app/bin/main
 
-# Добавляем PostgreSQL клиент в образ
+# Add PostgreSQL client to image
 RUN apk update && apk add postgresql-client
 RUN apk add --no-cache git
 
-# Устанавливаем curl для отладки внутри контейнера
+# Install curl for debugging inside the container
 RUN apk add --no-cache curl
 
-# Устанавливаем переменную окружения для конфиг-файла
+# Set the environment variable for the config file
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"
 
 EXPOSE ${USERS_SERVICE_PORT}

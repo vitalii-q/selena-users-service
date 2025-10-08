@@ -11,7 +11,7 @@ import (
 
 // SeedUsers fills the users table with test data
 func SeedUsers(db *gorm.DB) {
-	// Создаём хешер
+	// Create a hasher
 	hasher := utils.NewBcryptHasher()
 
 	users := []models.User{
@@ -56,7 +56,7 @@ func SeedUsers(db *gorm.DB) {
 	for _, user := range users {
 		var existing models.User
 
-		// Проверяем, существует ли пользователь с таким email
+		// Check if a user with this email address exists
 		err := db.Where("email = ?", user.Email).First(&existing).Error
 
 		if err == nil {
@@ -69,7 +69,7 @@ func SeedUsers(db *gorm.DB) {
 			continue
 		}
 
-		// Хешируем пароль перед вставкой
+		// Hash the password before inserting it
 		hashedPassword, err := hasher.HashPassword(user.Password)
 		if err != nil {
 			log.Printf("Failed to hash password for user %s: %v", user.Email, err)

@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// User - модель пользователя
+// User - user model
 type User struct {
 	ID           uuid.UUID `json:"id,omitempty"`
 	FirstName    string    `json:"first_name" validate:"required,min=2"`
