@@ -33,6 +33,24 @@ func SeedUsers(db *gorm.DB) {
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
+		{
+			Email:     "user2@mail.com",
+			Password:  "password",
+			FirstName: "user2",
+			LastName:  "user2",
+			Role:      "user",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		{
+			Email:     "user3@mail.com",
+			Password:  "password",
+			FirstName: "user3",
+			LastName:  "user3",
+			Role:      "user",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
 	}
 
 	for _, user := range users {
