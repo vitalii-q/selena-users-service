@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	//"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
 
+	"github.com/vitalii-q/selena-users-service/internal/database"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
@@ -31,7 +31,7 @@ func main() {
 	defer cancel() // Освобождаем ресурсы при выходе
 
 	// Подключаемся к базе
-	dbPool, err := pgxpool.New(ctx, getDatabaseURL())
+	dbPool, err := pgxpool.New(ctx, database.GetDatabaseURL())
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}
@@ -140,31 +140,4 @@ func test(c *gin.Context) {
 func protected(c *gin.Context) {
 	logrus.Info("Protected check request")
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-func getDatabaseURL() string {
-	// Собираем строку подключения вручную
-	dbUser := os.Getenv("USERS_POSTGRES_DB_USER")
-	dbPassword := os.Getenv("USERS_POSTGRES_DB_PASS")
-	dbName := os.Getenv("USERS_POSTGRES_DB_NAME")
-	dbHost := os.Getenv("USERS_POSTGRES_DB_HOST")
-	dbPort := os.Getenv("USERS_POSTGRES_DB_PORT_INNER")
-
-	if dbUser == "" || dbPassword == "" || dbName == "" || dbPort == "" {
-		log.Fatal("One or more required database environment variables are missing (main.go)")
-	}
-
-	sslmode := os.Getenv("USERS_POSTGRES_DB_SSLMODE")
-	if sslmode == "" {
-		if os.Getenv("PROJECT_SUFFIX") == "prod" {
-			sslmode = "require"
-		} else {
-			sslmode = "disable"
-		}
-	}
-
-	databaseUrl := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		dbUser, dbPassword, dbHost, dbPort, dbName, sslmode)
-
-	return databaseUrl
 }

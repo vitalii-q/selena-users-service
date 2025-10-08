@@ -8,6 +8,10 @@ import (
 // BcryptHasher - структура для хеширования паролей через bcrypt
 type BcryptHasher struct{}
 
+func NewBcryptHasher() *BcryptHasher {
+	return &BcryptHasher{}
+}
+
 // HashPassword - хеширует пароль
 func (b *BcryptHasher) HashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
