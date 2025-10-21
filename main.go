@@ -18,6 +18,7 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/database"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
@@ -51,12 +52,15 @@ func main() {
 		AuthService: authService,
 	}
 
+	hotelClient := external_services.NewHotelServiceClient("http://hotels-service:9064")
+	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
+
 	// Запускаем сервер
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "9065" // По умолчанию основной контейнер работает на 9065
 	}
-	r := setupRouter(userHandler, OAuthHandler)
+	r := setupRouter(userHandler, OAuthHandler, userHotelsHandler)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -91,7 +95,11 @@ func setupLogger() {
 }
 
 // setupRouter инициализирует маршрутизатор и эндпоинты
-func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthHandler) *gin.Engine {
+func setupRouter(
+	userHandler *handlers.UserHandler, 
+	authHandler *handlers.OAuthHandler,
+	userHotelsHandler *handlers.UserHotelsHandler,
+) *gin.Engine {
 	r := gin.Default()
 
 	// Логгер для всех входящих запросов
@@ -105,7 +113,7 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	r.GET("/test", test)
 	r.GET("/protected", protected)
 
-	// Определяем маршруты
+	// User CRUD
 	r.POST("/users", userHandler.CreateUserHandler)
 	r.GET("/users/:id", userHandler.GetUserHandler)
 	r.PUT("/users/:id", userHandler.UpdateUserHandler)
@@ -120,6 +128,8 @@ func setupRouter(userHandler *handlers.UserHandler, authHandler *handlers.OAuthH
 	logrus.Debugf("authHandler: %s", string(b))
 
 	//logrus.Debug("test!!!: s", authHandler)
+
+	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
 
 	return r
 }
