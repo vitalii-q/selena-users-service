@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -24,7 +25,12 @@ type HotelServiceClient struct {
 }
 
 // NewHotelServiceClient — конструктор клиента
-func NewHotelServiceClient(baseURL string) *HotelServiceClient {
+func NewHotelServiceClient() *HotelServiceClient {
+	baseURL := os.Getenv("HOTELS_SERVICE_URL")
+	if baseURL == "" {
+		baseURL = "http://hotels-service:9064"
+	}
+
 	return &HotelServiceClient{
 		BaseURL: baseURL,
 		Client: &http.Client{

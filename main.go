@@ -52,7 +52,7 @@ func main() {
 		AuthService: authService,
 	}
 
-	hotelClient := external_services.NewHotelServiceClient("http://hotels-service:9064")
+	hotelClient := external_services.NewHotelServiceClient()
 	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
 
 	// Запускаем сервер
