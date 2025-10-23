@@ -11,7 +11,10 @@ RUN go mod tidy
 
 COPY . ./
 
+# Build main binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/main ./main.go
+# Build seed binary
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/seed ./cmd/seed/main.go
 
 # Installing migrate tool during build
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -32,6 +35,8 @@ COPY --from=builder /app/bin/main /app/bin/main
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /go/bin/air /usr/local/bin/air
 COPY --from=builder /app/users-service/db /app/users-service/db
+# Copy the seed binary
+COPY --from=builder /app/bin/seed /app/bin/seed
 
 # Copy the entrypoint scripts
 COPY ./_docker /app/users-service/_docker
@@ -48,6 +53,8 @@ RUN apk add --no-cache git
 
 # Install curl for debugging inside the container
 RUN apk add --no-cache curl
+
+RUN chmod +x /app/bin/main /app/bin/seed
 
 # Set the environment variable for the config file
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"

@@ -43,7 +43,8 @@ echo "📁 USERS_SERVICE_ROOT=${USERS_SERVICE_ROOT}"
 sh "${USERS_SERVICE_ROOT}/db/migrate.sh"
 
 # Database seeding
-go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+#go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+/app/bin/seed
 
 # Launching the application depending on the mode
 if [ "$PROJECT_SUFFIX" = "dev" ]; then
