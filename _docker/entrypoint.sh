@@ -43,8 +43,13 @@ echo "📁 USERS_SERVICE_ROOT=${USERS_SERVICE_ROOT}"
 sh "${USERS_SERVICE_ROOT}/db/migrate.sh"
 
 # Database seeding
-#go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
-/app/bin/seed
+if [ "$RUN_MODE" = "k8s" ]; then
+  echo "🌱 Running seed binary for Kubernetes..."
+  /app/bin/seed
+else
+  echo "🌱 Running seed script with go run for Docker..."
+  go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+fi
 
 # Launching the application depending on the mode
 if [ "$PROJECT_SUFFIX" = "dev" ]; then
