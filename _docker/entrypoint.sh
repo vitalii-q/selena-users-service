@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e # Script crash on any error
 
+# Load environment variables from .env file if it exists
+if [ -f /app/users-service/.env ]; then
+  echo "📄 Loading environment variables from .env file..."
+  set -a  # automatically export all variables
+  . /app/users-service/.env
+  set +a
+fi
+
 MAX_RETRIES=10
 RETRY_COUNT=0
 
