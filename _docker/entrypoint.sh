@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e # Script crash on any error
 
+# Defining the environment: cloud or local
+if [ -n "$AWS_EXECUTION_ENV" ]; then
+  echo "☁️ Running in cloud environment (AWS)"
+  ENV_FILE="/app/users-service/.env.cloud"
+else
+  echo "🏠 Running locally"
+  ENV_FILE="/app/users-service/.env"
+fi
+
 # Load environment variables from .env file if it exists
 if [ -f /app/users-service/.env ]; then
   echo "📄 Loading environment variables from .env file..."
