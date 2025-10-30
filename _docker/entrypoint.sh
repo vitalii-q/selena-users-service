@@ -10,12 +10,15 @@ else
   ENV_FILE="/app/users-service/.env"
 fi
 
-# Load environment variables from .env file if it exists
-if [ -f /app/users-service/.env ]; then
-  echo "📄 Loading environment variables from .env file..."
+# Load environment variables from selected env file
+if [ -f "$ENV_FILE" ]; then
+  echo "📄 Loading environment variables from $ENV_FILE..."
   set -a  # automatically export all variables
-  . /app/users-service/.env
+  . "$ENV_FILE"
   set +a
+else
+  echo "❌ ENV file $ENV_FILE not found, exiting."
+  exit 1
 fi
 
 MAX_RETRIES=10
