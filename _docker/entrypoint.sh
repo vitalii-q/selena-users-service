@@ -1,25 +1,10 @@
 #!/bin/sh
 set -e # Script crash on any error
 
-# Defining the environment: cloud or local
-if [ -n "$AWS_EXECUTION_ENV" ]; then
-  echo "☁️ Running in cloud environment (AWS)"
-  ENV_FILE="/app/users-service/.env.cloud"
-else
-  echo "🏠 Running locally"
-  ENV_FILE="/app/users-service/.env"
-fi
-
-# Load environment variables from selected env file
-if [ -f "$ENV_FILE" ]; then
-  echo "📄 Loading environment variables from $ENV_FILE..."
-  set -a  # automatically export all variables
-  . "$ENV_FILE"
-  set +a
-else
-  echo "❌ ENV file $ENV_FILE not found, exiting."
-  exit 1
-fi
+# The environment variables are expected to be already set by Docker
+# Just print which file we are using for debug purposes
+echo "📄 Environment variables loaded:"
+env | grep USERS_ || true
 
 MAX_RETRIES=10
 RETRY_COUNT=0
@@ -67,8 +52,13 @@ if [ "$RUN_MODE" = "k8s" ]; then
   echo "🌱 Running seed binary for Kubernetes..."
   /app/bin/seed
 else
-  echo "🌱 Running seed script with go run for Docker..."
-  go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+  if [ -f "${USERS_SERVICE_ROOT}/cmd/seed/main.go" ]; then
+    echo "🌱 Running seed script with go run for Docker..."
+    go run "${USERS_SERVICE_ROOT}/cmd/seed/main.go"
+  else
+    echo "🌱 Running compiled seed binary (no Go source found)..."
+    /app/bin/seed
+  fi
 fi
 
 # Launching the application depending on the mode
