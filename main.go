@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 
 	//"encoding/json"
 	"log"
@@ -21,6 +22,11 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
+
+type RootResponse struct {
+    Message string `json:"message"`
+    Host    string `json:"host"`
+}
 
 func init() {
 	setupLogger() // Настраиваем логирование
@@ -134,10 +140,36 @@ func setupRouter(
 	return r
 }
 
+func getPublicIPv4() string {
+    resp, err := http.Get("http://169.254.169.254/latest/meta-data/public-ipv4")
+    if err != nil {
+        log.Printf("Cannot get public IP: %v", err)
+        return "unknown"
+    }
+    defer resp.Body.Close()
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        log.Printf("Cannot read response: %v", err)
+        return "unknown"
+    }
+    return string(body)
+}
+
 // handleRoot отвечает на запросы к "/"
 func handleRoot(c *gin.Context) {
+    hostname, err := os.Hostname()
+    if err != nil {
+        hostname = "unknown"
+    }
+
+	publicIP := getPublicIPv4()
+
 	logrus.Info("GET / hit")
-	c.JSON(http.StatusOK, gin.H{"message": "Hello, users-service!"})
+	c.JSON(http.StatusOK, gin.H{
+        "message":     "Hello, users-service!",
+        "host":        hostname, // вернём hostname/имя инстанса
+		"Public_IPv4": publicIP,
+    })
 }
 
 // handleHealth отвечает на запросы к "/health"
