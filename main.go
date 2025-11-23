@@ -140,21 +140,6 @@ func setupRouter(
 	return r
 }
 
-func getPublicIPv4() string {
-    resp, err := http.Get("http://169.254.169.254/latest/meta-data/public-ipv4")
-    if err != nil {
-        log.Printf("Cannot get public IP: %v", err)
-        return "unknown"
-    }
-    defer resp.Body.Close()
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-        log.Printf("Cannot read response: %v", err)
-        return "unknown"
-    }
-    return string(body)
-}
-
 // handleRoot отвечает на запросы к "/"
 func handleRoot(c *gin.Context) {
     hostname, err := os.Hostname()
@@ -182,4 +167,53 @@ func test(c *gin.Context) {
 func protected(c *gin.Context) {
 	logrus.Info("Protected check request")
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+// getPublicIPv4 — IMDSv2 поддержка для запроса публичного IPv4 EC2
+func getPublicIPv4() string {
+    client := &http.Client{}
+
+    // 1. Получаем IMDSv2 token
+    tokenReq, err := http.NewRequest("PUT", "http://169.254.169.254/latest/api/token", nil)
+    if err != nil {
+        log.Printf("IMDSv2 token request build failed: %v", err)
+        return ""
+    }
+    tokenReq.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "21600")
+
+    tokenResp, err := client.Do(tokenReq)
+    if err != nil {
+        log.Printf("IMDSv2 token request failed: %v", err)
+        return ""
+    }
+    defer tokenResp.Body.Close()
+
+    token, err := ioutil.ReadAll(tokenResp.Body)
+    if err != nil {
+        log.Printf("IMDSv2 token read failed: %v", err)
+        return ""
+    }
+
+    // 2. Делаем запрос public-ipv4 с токеном
+    metaReq, err := http.NewRequest("GET", "http://169.254.169.254/latest/meta-data/public-ipv4", nil)
+    if err != nil {
+        log.Printf("Public IPv4 request build failed: %v", err)
+        return ""
+    }
+    metaReq.Header.Set("X-aws-ec2-metadata-token", string(token))
+
+    metaResp, err := client.Do(metaReq)
+    if err != nil {
+        log.Printf("Public IPv4 request failed: %v", err)
+        return ""
+    }
+    defer metaResp.Body.Close()
+
+    body, err := ioutil.ReadAll(metaResp.Body)
+    if err != nil {
+        log.Printf("Public IPv4 read failed: %v", err)
+        return ""
+    }
+
+    return string(body)
 }
