@@ -43,7 +43,6 @@ COPY ./_docker /app/users-service/_docker
 
 # Copy .env file
 COPY .env /app/users-service/.env
-COPY .env.cloud /app/users-service/.env.cloud
 
 # Install Go in the final container (for air)
 RUN apk add --no-cache go
