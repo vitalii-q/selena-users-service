@@ -47,6 +47,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      # CI/CD Root directory = repository selena-users-service
 
       # Логин в AWS (через IAM пользователя/роль, созданную ранее)
       - name: Configure AWS Credentials
@@ -63,10 +64,7 @@ jobs:
       # Сборка Docker image
       - name: Build Docker image
         run: |
-          docker build \
-            -t $ECR_REPO_NAME:$IMAGE_TAG \
-            -f users-service/Dockerfile \
-            users-service
+          docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
 
       # Получаем URL репозитория
       - name: Get ECR repo URL
