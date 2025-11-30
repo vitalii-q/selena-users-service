@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPO_NAME: selena-users-service   # ECR repository name
+  IMAGE_TAG: latest
+
 jobs:
   test:
     name: Run Unit Tests
@@ -28,93 +33,139 @@ jobs:
         run: go test ./... -v
 
   build:
-    runs-on: self-hosted
-    needs: test  # Запускать только если тесты прошли
+    name: Build & Push to AWS ECR
+    runs-on: ubuntu-latest
+    needs: test  # Run only if tests passed
+    # GHCR
+    #runs-on: self-hosted
+    #needs: test  # Run only if tests passed
 
     permissions:
-      packages: write   # Разрешение для записи в пакеты (GHCR)
-      contents: read    # Разрешение для чтения содержимого репозитория
+      packages: write   # Permission to write to packets (GHCR)
+      contents: read    # Permission to read repository content
 
     steps:
-        # Шаг очистки кэша (если нужно удалить старые кэшированные данные)
-      - name: Clear cache
-        run: |
-            rm -rf ${{ github.workspace }}/.cache
-
       - name: Checkout code
-        run: |
-          if [ ! -d "selena-prod/users-service/.git" ]; then
-            echo "Cloning the repository..."
-            git clone https://github.com/vitalii-q/selena-users-service selena-prod/users-service
-          else
-            echo "Repository already exists. Pulling the latest changes..."
-            cd selena-prod/users-service && git pull
-          fi
+        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v4
+      # Логин в AWS (через IAM пользователя/роль, созданную ранее)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build Docker image for GHCR
+      # Логин в ECR
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Сборка Docker image
+      - name: Build Docker image
         run: |
-          cd selena-prod/users-service
-          docker build -t ghcr.io/${{ github.repository_owner }}/selena/users-service:latest .
+          docker build \
+            -t $ECR_REPO_NAME:$IMAGE_TAG \
+            -f users-service/Dockerfile \
+            users-service
+
+      # Получаем URL репозитория
+      - name: Get ECR repo URL
+        id: ecr
+        run: |
+          echo "url=$(aws ecr describe-repositories --repository-names $ECR_REPO_NAME --query 'repositories[0].repositoryUri' --output text)" >> $GITHUB_OUTPUT
+
+      # Тегируем Docker image
+      - name: Tag Docker image
+        run: |
+          docker tag $ECR_REPO_NAME:$IMAGE_TAG ${{ steps.ecr.outputs.url }}:$IMAGE_TAG
+
+      # Пушим в ECR
+      - name: Push Docker image to Amazon ECR
+        run: |
+          docker push ${{ steps.ecr.outputs.url }}:$IMAGE_TAG
+
+      # ======================    
+      # GHCR build
+      # ======================
+      # Cache clearing step (if you need to delete old cached data)
+      #- name: Clear cache
+      #  run: |
+      #      rm -rf ${{ github.workspace }}/.cache
+
+      #- name: Checkout code
+      #  run: |
+      #    if [ ! -d "selena-prod/users-service/.git" ]; then
+      #      echo "Cloning the repository..."
+      #      git clone https://github.com/vitalii-q/selena-users-service selena-prod/users-service
+      #    else
+      #      echo "Repository already exists. Pulling the latest changes..."
+      #      cd selena-prod/users-service && git pull
+      #    fi
+
+      #- name: Set up Docker Buildx
+      #  uses: docker/setup-buildx-action@v2
+
+      #- name: Cache Docker layers
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: /tmp/.buildx-cache
+      #    key: ${{ runner.os }}-buildx-${{ github.sha }}
+      #    restore-keys: |
+      #      ${{ runner.os }}-buildx-
+
+      #- name: Build Docker image for GHCR
+      #  run: |
+      #    cd selena-prod/users-service
+      #    docker build -t ghcr.io/${{ github.repository_owner }}/selena/users-service:latest .
 
       # GitHub Container Registry
-      - name: Log in to GitHub Container Registry
-        run: |
-          docker login ghcr.io -u vitalii-q -p ${{ secrets.GITHUB_TOKEN }}
+      #- name: Log in to GitHub Container Registry
+      #  run: |
+      #    docker login ghcr.io -u vitalii-q -p ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run tests
-        run: |
-          docker run --rm ghcr.io/${{ github.repository_owner }}/selena/users-service:latest echo "Container is running"
-          
-      - name: Push Docker image to GHCR
-        run: |
-          docker push ghcr.io/${{ github.repository_owner }}/selena/users-service:latest
+      #- name: Run tests
+      #  run: |
+      #    docker run --rm ghcr.io/${{ github.repository_owner }}/selena/users-service:latest echo "Container is running"
+      #    
+      #- name: Push Docker image to GHCR
+      #  run: |
+      #    docker push ghcr.io/${{ github.repository_owner }}/selena/users-service:latest
 
-  deploy:
-    runs-on: self-hosted
-    needs: build
+  #deploy:
+  #  runs-on: self-hosted
+  #  needs: build
 
-    steps:
-      - name: Pull latest changes from selena-devops
-        run: |
-          cd selena-prod
-          if [ ! -d "selena-prod/.git" ]; then
-            echo "Initializing the repository and pulling the latest changes..."
-            git init
+  #  steps:
+  #    - name: Pull latest changes from selena-devops
+  #      run: |
+  #        cd selena-prod
+  #        if [ ! -d "selena-prod/.git" ]; then
+  #          echo "Initializing the repository and pulling the latest changes..."
+  #          git init
             
-            # Проверяем, есть ли уже удаленный репозиторий
-            if ! git remote get-url origin &>/dev/null; then
-                echo "Adding remote origin..."
-                git remote add origin git@github.com:vitalii-q/selena-devops.git
-            else
-                echo "Remote origin is already set."
-            fi
+            # Check if the remote repository already exists
+  #          if ! git remote get-url origin &>/dev/null; then
+  #              echo "Adding remote origin..."
+  #              git remote add origin git@github.com:vitalii-q/selena-devops.git
+  #          else
+  #              echo "Remote origin is already set."
+  #          fi
 
-            git pull origin main
-          else
-            echo "Repository already exists. Pulling the latest changes..."
-            git pull origin main
-          fi
+  #          git pull origin main
+  #        else
+  #          echo "Repository already exists. Pulling the latest changes..."
+  #          git pull origin main
+  #        fi
 
-      - name: Remove existing containers
-        run: |
-          cd selena-prod
-          docker-compose down || true
+  #    - name: Remove existing containers
+  #      run: |
+  #        cd selena-prod
+  #        docker-compose down || true
 
-      - name: Deploy application
-        run: |
-          cd selena-prod
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker-compose pull users-service
-          docker-compose up -d users-service
-          docker ps -a
+  #    - name: Deploy application
+  #      run: |
+  #        cd selena-prod
+  #        echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+  #        docker-compose pull users-service
+  #        docker-compose up -d users-service
+  #        docker ps -a
