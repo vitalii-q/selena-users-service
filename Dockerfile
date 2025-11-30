@@ -42,7 +42,7 @@ COPY --from=builder /app/bin/seed /app/bin/seed
 COPY ./_docker /app/users-service/_docker
 
 # Copy .env file
-COPY .env /app/users-service/.env
+# COPY .env /app/users-service/.env
 
 # Install Go in the final container (for air)
 RUN apk add --no-cache go
