@@ -152,7 +152,7 @@ func handleRoot(c *gin.Context) {
 	logrus.Info("GET / hit")
 	c.JSON(http.StatusOK, gin.H{
         "message":     "Hello, users-service!",
-        "host":        hostname, // вернём hostname/имя инстанса
+        "Private_DNS": hostname, // вернём hostname/имя инстанса
 		"Public_IPv4": publicIP,
     })
 }
