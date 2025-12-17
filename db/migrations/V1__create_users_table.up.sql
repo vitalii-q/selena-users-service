@@ -4,6 +4,9 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     first_name VARCHAR(100),
     last_name VARCHAR(100),
+    birth DATE,
+    gender VARCHAR(10),
+    country VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

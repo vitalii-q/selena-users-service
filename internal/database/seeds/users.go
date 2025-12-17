@@ -21,6 +21,9 @@ func SeedUsers(db *gorm.DB) {
 			FirstName: "admin",
 			LastName:  "admin",
 			Role:      "admin",
+			Birth:     nil, // можно оставить пустым
+			Gender:    "male",
+			Country:   "Germany",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -30,6 +33,9 @@ func SeedUsers(db *gorm.DB) {
 			FirstName: "user",
 			LastName:  "user",
 			Role:      "user",
+			Birth:     ptrTime(time.Date(1990, time.May, 21, 0, 0, 0, 0, time.UTC)),
+			Gender:    "male",
+			Country:   "Germany",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -39,6 +45,9 @@ func SeedUsers(db *gorm.DB) {
 			FirstName: "user2",
 			LastName:  "user2",
 			Role:      "user",
+			Birth:     ptrTime(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			Gender:    "male",
+			Country:   "France",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -48,6 +57,9 @@ func SeedUsers(db *gorm.DB) {
 			FirstName: "user3",
 			LastName:  "user3",
 			Role:      "user",
+			Birth:     ptrTime(time.Date(1985, time.December, 31, 0, 0, 0, 0, time.UTC)),
+			Gender:    "female",
+			Country:   "France",
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
@@ -75,13 +87,16 @@ func SeedUsers(db *gorm.DB) {
 			log.Printf("Failed to hash password for user %s: %v", user.Email, err)
 			continue
 		}
-		
+
 		err = db.Model(&models.User{}).Create(map[string]interface{}{
 			"email":         user.Email,
 			"first_name":    user.FirstName,
 			"last_name":     user.LastName,
 			"password_hash": hashedPassword,
 			"role":          user.Role,
+			"birth":   		 user.Birth,
+			"gender":  		 user.Gender,
+			"country": 		 user.Country,
 			"created_at":    user.CreatedAt,
 			"updated_at":    user.UpdatedAt,
 		}).Error
@@ -92,4 +107,8 @@ func SeedUsers(db *gorm.DB) {
 			log.Printf("User %s seeded successfully", user.Email)
 		}
 	}
+}
+
+func ptrTime(t time.Time) *time.Time {
+	return &t
 }
