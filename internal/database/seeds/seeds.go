@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// run seeds: docker exec -it users-service_dev go run cmd/seed/main.go
 func SeedAll(db *gorm.DB) {
     log.Println("🌱 Starting user seeds...")
     SeedUsers(db) // run seeds

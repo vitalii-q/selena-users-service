@@ -1,3 +1,15 @@
+# users-service/Dockerfile
+
+# --- Start microservice
+# docker build --no-cache --platform linux/amd64 -t selena-users-service:amd64 .
+#
+# docker run -d --name users-service --env-file .env -p 9065:9065 --network selena-dev_app_network -v $(pwd):/app/users-service selena-users-service:amd64
+# -v $(pwd):/app/users-service — mount the local sources into the container
+
+# --- Start DB for micro service
+# 
+
+
 FROM golang:1.24.0-alpine AS builder
 
 WORKDIR /app/users-service
