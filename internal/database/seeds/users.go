@@ -1,7 +1,9 @@
 package seeds
 
 import (
+	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
@@ -9,106 +11,134 @@ import (
 	"gorm.io/gorm"
 )
 
+// ----------------------------------------------------------------
+// run seeds: docker exec -it users-service go run cmd/seed/main.go
+// ----------------------------------------------------------------
+
+type AgeRange struct {
+	Min int
+	Max int
+}
+
 // SeedUsers fills the users table with test data
 func SeedUsers(db *gorm.DB) {
-	// Create a hasher
 	hasher := utils.NewBcryptHasher()
 
-	users := []models.User{
-		{
-			Email:     "admin@mail.com",
-			Password:  "password",
-			FirstName: "admin",
-			LastName:  "admin",
-			Role:      "admin",
-			Birth:     nil, // можно оставить пустым
-			Gender:    "male",
-			Country:   "Germany",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			Email:     "user@mail.com",
-			Password:  "password",
-			FirstName: "user",
-			LastName:  "user",
-			Role:      "user",
-			Birth:     ptrTime(time.Date(1990, time.May, 21, 0, 0, 0, 0, time.UTC)),
-			Gender:    "male",
-			Country:   "Germany",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			Email:     "user2@mail.com",
-			Password:  "password",
-			FirstName: "user2",
-			LastName:  "user2",
-			Role:      "user",
-			Birth:     ptrTime(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-			Gender:    "male",
-			Country:   "France",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
-		{
-			Email:     "user3@mail.com",
-			Password:  "password",
-			FirstName: "user3",
-			LastName:  "user3",
-			Role:      "user",
-			Birth:     ptrTime(time.Date(1985, time.December, 31, 0, 0, 0, 0, time.UTC)),
-			Gender:    "female",
-			Country:   "France",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		},
+	// -------------------------------
+	// ❗ CLEARING THE TABLE
+	// -------------------------------
+	if err := db.Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE").Error; err != nil {
+	log.Fatalf("Failed to truncate users table: %v", err)}
+
+	// CONFIGURATION
+	totalUsers := 50
+
+	ageRanges := []AgeRange{
+		{Min: 18, Max: 25},
+		{Min: 26, Max: 35},
+		{Min: 36, Max: 50},
 	}
 
-	for _, user := range users {
-		var existing models.User
+	countries := []string{"Germany", "France", "Ukraine"}
+	genders := []string{"male", "female"}
 
-		// Check if a user with this email address exists
-		err := db.Where("email = ?", user.Email).First(&existing).Error
+	now := time.Now()
 
-		if err == nil {
-			log.Printf("User %s already exists, skipping...", user.Email)
-			continue
+	var users []models.User
+	var passwordHashes []string
+
+	// ADMIN (static, included in batch)
+	adminPasswordHash, err := hasher.HashPassword("password")
+	if err != nil {
+		log.Printf("Failed to hash admin password: %v", err)
+		return
+	}
+
+	users = append(users, models.User{
+		Email:     "admin@mail.com",
+		Password:  "password",
+		FirstName: "admin",
+		LastName:  "admin",
+		Role:      "admin",
+		Birth:     nil,
+		Gender:    "male",
+		Country:   "Germany",
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+
+	passwordHashes = append(passwordHashes, adminPasswordHash)
+
+	// GENERATED USERS
+	usersPerRange := totalUsers / len(ageRanges)
+	userIndex := 1
+
+	for _, ageRange := range ageRanges {
+		for i := 0; i < usersPerRange; i++ {
+			age := randomInt(ageRange.Min, ageRange.Max)
+			birth := birthDateFromAge(age)
+
+			passwordHash, err := hasher.HashPassword("password")
+			if err != nil {
+				log.Printf("Failed to hash password: %v", err)
+				continue
+			}
+
+			users = append(users, models.User{
+				Email:     fmt.Sprintf("user%d@mail.com", userIndex),
+				Password:  "password",
+				FirstName: fmt.Sprintf("User%d", userIndex),
+				LastName:  fmt.Sprintf("User%d", userIndex),
+				Role:      "user",
+				Birth:     birth,
+				Gender:    genders[rand.Intn(len(genders))],
+				Country:   countries[rand.Intn(len(countries))],
+				CreatedAt: now,
+				UpdatedAt: now,
+			})
+
+			passwordHashes = append(passwordHashes, passwordHash)
+			userIndex++
+		}
+	}
+
+	// ONE BATCH INSERT
+	if len(users) > 0 {
+		var insertData []map[string]interface{}
+		for i, u := range users {
+			insertData = append(insertData, map[string]interface{}{
+				"email":         u.Email,
+				"first_name":    u.FirstName,
+				"last_name":     u.LastName,
+				"password_hash": passwordHashes[i],
+				"role":          u.Role,
+				"birth":         u.Birth,
+				"gender":        u.Gender,
+				"country":       u.Country,
+				"created_at":    u.CreatedAt,
+				"updated_at":    u.UpdatedAt,
+			})
 		}
 
-		if err != gorm.ErrRecordNotFound {
-			log.Printf("Failed to check user %s: %v", user.Email, err)
-			continue
-		}
-
-		// Hash the password before inserting it
-		hashedPassword, err := hasher.HashPassword(user.Password)
+		err := db.Model(&models.User{}).Create(&insertData).Error
 		if err != nil {
-			log.Printf("Failed to hash password for user %s: %v", user.Email, err)
-			continue
-		}
-
-		err = db.Model(&models.User{}).Create(map[string]interface{}{
-			"email":         user.Email,
-			"first_name":    user.FirstName,
-			"last_name":     user.LastName,
-			"password_hash": hashedPassword,
-			"role":          user.Role,
-			"birth":   		 user.Birth,
-			"gender":  		 user.Gender,
-			"country": 		 user.Country,
-			"created_at":    user.CreatedAt,
-			"updated_at":    user.UpdatedAt,
-		}).Error
-
-		if err != nil {
-			log.Printf("Failed to seed user %s: %v", user.Email, err)
+			log.Printf("Failed to batch insert users: %v", err)
 		} else {
-			log.Printf("User %s seeded successfully", user.Email)
+			log.Printf("%d users seeded successfully (single batch insert)", len(users))
 		}
 	}
 }
 
-func ptrTime(t time.Time) *time.Time {
+func randomInt(min, max int) int {
+	return rand.Intn(max-min+1) + min
+}
+
+func birthDateFromAge(age int) *time.Time {
+	now := time.Now()
+	year := now.Year() - age
+	month := time.Month(rand.Intn(12) + 1)
+	day := rand.Intn(28) + 1
+
+	t := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 	return &t
 }

@@ -12,7 +12,7 @@ import (
     "gorm.io/gorm"
 )
 
-// run seeds: docker exec -it users-service_dev go run cmd/seed/main.go
+// run seeds: docker exec -it users-service go run cmd/seed/main.go
 func main() {
 	// downloud .env
 	err := godotenv.Load(".env")

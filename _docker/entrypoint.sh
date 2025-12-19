@@ -64,7 +64,8 @@ fi
 # Launching the application depending on the mode
 if [ "$PROJECT_SUFFIX" = "dev" ]; then
   echo "🚀 Starting users-service with Air (development mode)..."
-  exec air
+  cd /app/users-service
+  exec air -c .air.toml
 else
   echo "🚀 Starting users-service with compiled binary (production mode)..."
   exec /app/bin/main
