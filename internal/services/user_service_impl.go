@@ -55,12 +55,36 @@ func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 // GetUser - получение пользователя по UUID
 func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
-	query := `SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at
-		  FROM users WHERE id = $1 AND deleted_at IS NULL`
 
-	err := s.db.QueryRow(context.Background(), query, id.String()).Scan(
-		&user.ID, &user.FirstName, &user.LastName, &user.Email,
-		&user.Role, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt,
+	query := `
+		SELECT
+			id,
+			first_name,
+			last_name,
+			email,
+			role,
+			birth,
+			gender,
+			country,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM users
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	err := s.db.QueryRow(context.Background(), query, id).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Email,
+		&user.Role,
+		&user.Birth,
+		&user.Gender,
+		&user.Country,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&user.DeletedAt,
 	)
 
 	if err != nil {
@@ -128,7 +152,7 @@ func (s *UserServiceImpl) DeleteUser(id uuid.UUID) error {
 	return nil
 }
 
-// [правка] GetAllUsers — возвращает всех пользователей
+// GetAllUsers — возвращает всех пользователей
 func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 	query := `
 		SELECT
@@ -136,9 +160,14 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			first_name,
 			last_name,
 			email,
+			role,
+			birth,
+			gender,
+			country,
 			created_at,
 			updated_at
 		FROM users
+		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
 	`
 
@@ -160,6 +189,10 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			&user.FirstName,
 			&user.LastName,
 			&user.Email,
+			&user.Role,
+			&user.Birth,
+			&user.Gender,
+			&user.Country,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
@@ -176,3 +209,4 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 
 	return users, nil
 }
+

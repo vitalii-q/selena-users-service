@@ -139,7 +139,7 @@ func setupRouter(
 	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
 
 	// API routers
-	r.GET("/users", userHandler.GetUsersHandler) // get all users
+	r.GET("/api/v1/users", userHandler.GetUsersHandler) // get all users
 
 	return r
 }
