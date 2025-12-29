@@ -41,19 +41,19 @@ func NewHotelServiceClient() *HotelServiceClient {
 
 // GetHotels — получение списка отелей
 func (c *HotelServiceClient) GetHotels() ([]Hotel, error) {
-	resp, err := c.Client.Get(c.BaseURL + "/hotels") // [правка] используем http.Client с таймаутом
+	resp, err := c.Client.Get(c.BaseURL + "/hotels") // используем http.Client с таймаутом
 	if err != nil {
-		return nil, fmt.Errorf("failed to get hotels: %w", err) // [правка] добавляем контекст ошибки
+		return nil, fmt.Errorf("failed to get hotels: %w", err) // добавляем контекст ошибки
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("hotel service returned status: %d", resp.StatusCode) // [правка]
+		return nil, fmt.Errorf("hotel service returned status: %d", resp.StatusCode)
 	}
 
 	var hotels []Hotel
 	if err := json.NewDecoder(resp.Body).Decode(&hotels); err != nil {
-		return nil, fmt.Errorf("failed to decode hotels response: %w", err) // [правка]
+		return nil, fmt.Errorf("failed to decode hotels response: %w", err)
 	}
 	return hotels, nil
 }

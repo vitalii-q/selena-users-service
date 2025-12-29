@@ -127,3 +127,52 @@ func (s *UserServiceImpl) DeleteUser(id uuid.UUID) error {
 
 	return nil
 }
+
+// [правка] GetAllUsers — возвращает всех пользователей
+func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
+	query := `
+		SELECT
+			id,
+			first_name,
+			last_name,
+			email,
+			created_at,
+			updated_at
+		FROM users
+		ORDER BY created_at DESC
+	`
+
+	ctx := context.Background()
+
+	rows, err := s.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := make([]models.User, 0)
+
+	for rows.Next() {
+		var user models.User
+
+		err := rows.Scan(
+			&user.ID,
+			&user.FirstName,
+			&user.LastName,
+			&user.Email,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

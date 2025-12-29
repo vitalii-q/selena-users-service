@@ -125,6 +125,8 @@ func setupRouter(
 	r.PUT("/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
 
+	r.GET("/users", userHandler.GetUsersHandler) // get all users
+
 	// authenticate
 	r.POST("/users/oauth2/authenticate", authHandler.Authenticate)
 	//r.GET("/oauth2/authorize", authHandler.GetAuthorize)
@@ -135,6 +137,7 @@ func setupRouter(
 
 	//logrus.Debug("test!!!: s", authHandler)
 
+	// get all hotels from hotels-service (did it for basic communication between microservices)
 	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
 
 	return r

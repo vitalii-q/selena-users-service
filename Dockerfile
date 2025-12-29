@@ -6,7 +6,7 @@
 # docker run -d --name users-service --env-file .env -p 9065:9065 --network selena-dev_app_network -v $(pwd):/app/users-service selena-users-service:amd64
 # -v $(pwd):/app/users-service — mount the local sources into the container
 
-# --- Start DB for micro service
+# --- Start DB for microservice
 # 
 
 

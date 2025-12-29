@@ -39,7 +39,7 @@ func SeedUsers(db *gorm.DB) {
 		{Min: 36, Max: 50},
 	}
 
-	countries := []string{"Germany", "France", "Ukraine"}
+	countries := []string{"Germany", "France", "Ukraine"} // TODO: get contries and cities from hotels-service
 	genders := []string{"male", "female"}
 
 	now := time.Now()
@@ -88,7 +88,7 @@ func SeedUsers(db *gorm.DB) {
 				Email:     fmt.Sprintf("user%d@mail.com", userIndex),
 				Password:  "password",
 				FirstName: fmt.Sprintf("User%d", userIndex),
-				LastName:  fmt.Sprintf("User%d", userIndex),
+				LastName:  fmt.Sprintf("LastName%d", userIndex),
 				Role:      "user",
 				Birth:     birth,
 				Gender:    genders[rand.Intn(len(genders))],

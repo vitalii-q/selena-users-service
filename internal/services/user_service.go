@@ -12,6 +12,7 @@ type UserServiceInterface interface {
 	GetUser(id uuid.UUID) (models.User, error)
 	UpdateUser(id uuid.UUID, updatedUser models.User) (models.User, error)
 	DeleteUser(id uuid.UUID) error
+	GetAllUsers() ([]models.User, error)
 }
 
 // Конструктор для UserServiceImpl

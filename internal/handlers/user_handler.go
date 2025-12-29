@@ -153,7 +153,6 @@ func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, updatedUser)
 }
 
-
 // DeleteUserHandler - обработчик для удаления пользователя
 func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	idStr := c.Param("id")
@@ -177,4 +176,21 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// GetUsersHandler — получить список всех пользователей
+func (h *UserHandler) GetUsersHandler(c *gin.Context) {
+	users, err := h.service.GetAllUsers()
+	if err != nil {
+		logrus.WithError(err).Error("failed to get users")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to fetch users",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"users": users,
+		"count": len(users),
+	})
 }
