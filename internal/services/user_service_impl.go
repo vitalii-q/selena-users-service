@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	//"time"
@@ -55,6 +56,7 @@ func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 // GetUser - getting a user by UUID
 func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
+	var gender, country, city sql.NullString
 
 	query := `
 		SELECT
@@ -66,6 +68,7 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 			birth,
 			gender,
 			country,
+			city,
 			created_at,
 			updated_at,
 			deleted_at
@@ -82,6 +85,7 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 		&user.Birth,
 		&user.Gender,
 		&user.Country,
+		&user.City,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.DeletedAt,
@@ -92,6 +96,17 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 			return models.User{}, errors.New("user not found")
 		}
 		return models.User{}, err
+	}
+
+	// Validation
+	if gender.Valid {
+		user.Gender = &gender.String
+	}
+	if country.Valid {
+		user.Country = &country.String
+	}
+	if city.Valid {
+		user.City = &city.String
 	}
 
 	return user, nil
@@ -164,6 +179,7 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			birth,
 			gender,
 			country,
+			city,
 			created_at,
 			updated_at
 		FROM users
@@ -183,6 +199,7 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 
 	for rows.Next() {
 		var user models.User
+		var gender, country, city sql.NullString
 
 		err := rows.Scan(
 			&user.ID,
@@ -191,13 +208,25 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			&user.Email,
 			&user.Role,
 			&user.Birth,
-			&user.Gender,
-			&user.Country,
+			&gender,
+			&country,
+			&city,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		// Validation
+		if gender.Valid {
+			user.Gender = &gender.String
+		}
+		if country.Valid {
+			user.Country = &country.String
+		}
+		if city.Valid {
+			user.City = &city.String
 		}
 
 		users = append(users, user)

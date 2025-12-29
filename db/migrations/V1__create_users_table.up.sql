@@ -7,6 +7,7 @@ CREATE TABLE users (
     birth DATE,
     gender VARCHAR(10),
     country VARCHAR(100),
+    city VARCHAR(100),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
