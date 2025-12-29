@@ -15,9 +15,9 @@ type User struct {
 	Password     string     `json:"password,omitempty" validate:"required,min=6"`
 	Role         string     `json:"role" validate:"required,oneof=admin user"`
 	Birth        *time.Time `json:"birth,omitempty"`      // nullable
-    Gender    	 *string    `json:"gender,omitempty"`     // nullable
-    Country   	 *string    `json:"country,omitempty"`    // nullable
-    City      	 *string    `json:"city,omitempty"`       // nullable
+	Gender  	 *string 	`json:"gender"`               // nullable
+	Country 	 *string 	`json:"country"`              // nullable
+	City    	 *string 	`json:"city"`                 // nullable
 	CreatedAt    time.Time  `json:"created_at,omitempty"`
 	UpdatedAt    time.Time  `json:"updated_at,omitempty"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`  // nullable
