@@ -6,7 +6,7 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
-// Интерфейс UserService
+// UserService Interface
 type UserServiceInterface interface {
 	CreateUser(user models.User) (models.User, error)
 	GetUser(id uuid.UUID) (models.User, error)
@@ -15,7 +15,7 @@ type UserServiceInterface interface {
 	GetAllUsers() ([]models.User, error)
 }
 
-// Конструктор для UserServiceImpl
+// Constructor for UserServiceImpl
 func NewUserService(db db_interface, passwordHasher utils.PasswordHasher) UserServiceInterface {
     if passwordHasher == nil {
         passwordHasher = &utils.BcryptHasher{}  // Устанавливаем дефолтный хешер, если не передан

@@ -16,7 +16,7 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
-// UserServiceImpl - реализация сервиса пользователей
+// UserServiceImpl - implementation of the user service
 type UserServiceImpl struct {
 	db db_interface
 	passwordHasher utils.PasswordHasher
@@ -32,7 +32,7 @@ func NewUserServiceImpl(db db_interface, passwordHasher utils.PasswordHasher) *U
 
 // CreateUser - создание нового пользователя
 func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
-	// Хешируем пароль перед сохранением
+	// hash the password before saving it
 	hashedPassword, err := s.passwordHasher.HashPassword(user.Password)
 	if err != nil {
 		return models.User{}, err
@@ -52,7 +52,7 @@ func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// GetUser - получение пользователя по UUID
+// GetUser - getting a user by UUID
 func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
 
@@ -97,7 +97,7 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	return user, nil
 }
 
-// GetUserByEmail - получение пользователя по email
+// GetUserByEmail - receiving a user by email
 func (s *UserServiceImpl) GetUserByEmail(email string) (models.UserAuth, error) {
 	var user models.UserAuth
 	query := `SELECT id, email, password_hash FROM users WHERE email = $1 AND deleted_at IS NULL`
@@ -116,7 +116,7 @@ func (s *UserServiceImpl) GetUserByEmail(email string) (models.UserAuth, error) 
 	return user, nil
 }
 
-// UpdateUser - обновление данных пользователя
+// UpdateUser - updating user data
 func (s *UserServiceImpl) UpdateUser(id uuid.UUID, updatedUser models.User) (models.User, error) {
 	query := `UPDATE users 
 			  SET first_name = $1, last_name = $2, email = $3, updated_at = NOW()
@@ -137,7 +137,7 @@ func (s *UserServiceImpl) UpdateUser(id uuid.UUID, updatedUser models.User) (mod
 	return updatedUser, nil
 }
 
-// DeleteUser - удаление пользователя по ID
+// DeleteUser - deleting a user by ID
 func (s *UserServiceImpl) DeleteUser(id uuid.UUID) error {
 	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1`
 	result, err := s.db.Exec(context.Background(), query, id)
@@ -152,7 +152,7 @@ func (s *UserServiceImpl) DeleteUser(id uuid.UUID) error {
 	return nil
 }
 
-// GetAllUsers — возвращает всех пользователей
+// GetAllUsers — returns all users
 func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 	query := `
 		SELECT

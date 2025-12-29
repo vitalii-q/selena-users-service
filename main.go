@@ -119,12 +119,6 @@ func setupRouter(
 	r.GET("/test", test)
 	r.GET("/protected", protected)
 
-	// User CRUD
-	r.POST("/users", userHandler.CreateUserHandler)
-	r.GET("/users/:id", userHandler.GetUserHandler)
-	r.PUT("/users/:id", userHandler.UpdateUserHandler)
-	r.DELETE("/users/:id", userHandler.DeleteUserHandler)
-
 	// authenticate
 	r.POST("/users/oauth2/authenticate", authHandler.Authenticate)
 	//r.GET("/oauth2/authorize", authHandler.GetAuthorize)
@@ -139,6 +133,11 @@ func setupRouter(
 	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
 
 	// API routers
+	r.POST("/api/v1/users", userHandler.CreateUserHandler)
+	r.GET("/api/v1/users/:id", userHandler.GetUserHandler)
+	r.PUT("/api/v1/users/:id", userHandler.UpdateUserHandler)
+	r.DELETE("/api/v1/users/:id", userHandler.DeleteUserHandler)
+
 	r.GET("/api/v1/users", userHandler.GetUsersHandler) // get all users
 
 	return r
