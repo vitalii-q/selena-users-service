@@ -10,6 +10,8 @@
 # Launch command in the root directory /users-service
 # docker run -d --name users-db -p 9265:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=users_db -v $(pwd)/_docker/users-db-data:/var/lib/postgresql/data --network selena-dev_app_network postgres:15
 
+# The sequence of launching microservices: hotels-service -> users-service -> bookings-service
+
 FROM golang:1.24.0-alpine AS builder
 
 WORKDIR /app/users-service
@@ -36,8 +38,8 @@ FROM golang:1.24.0-alpine AS final
 
 WORKDIR /app/users-service
 
-# Install curl for debugging inside the container
-RUN apk add --no-cache curl
+# Install all necessary packages in one layer
+RUN apk update && apk add --no-cache curl git postgresql-client go
 
 # Install AIR hot reload (prebuilt binary)
 RUN curl -L https://github.com/air-verse/air/releases/download/v1.62.0/air_1.62.0_linux_amd64.tar.gz \
@@ -55,15 +57,8 @@ COPY --from=builder /app/bin/seed /app/bin/seed
 # Copy the entrypoint scripts
 COPY ./_docker /app/users-service/_docker
 
-# Install Go in the final container (for air)
-RUN apk add --no-cache go
-
 # Add execution rights
 RUN chmod +x /app/bin/main
-
-# Add PostgreSQL client to image
-RUN apk update && apk add postgresql-client
-RUN apk add --no-cache git
 
 RUN chmod +x /app/bin/main /app/bin/seed
 
