@@ -7,8 +7,8 @@
 # -v $(pwd):/app/users-service — mount the local sources into the container
 
 # --- Start DB for microservice
-# 
-
+# Launch command in the root directory /users-service
+# docker run -d --name users-db -p 9265:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=users_db -v $(pwd)/_docker/users-db-data:/var/lib/postgresql/data --network selena-dev_app_network postgres:15
 
 FROM golang:1.24.0-alpine AS builder
 

@@ -34,3 +34,6 @@ Thumbs.db
 .air.toml
 
 bin/main
+
+# DB volume local data
+/_docker/users-db-data
