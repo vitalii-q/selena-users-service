@@ -371,3 +371,8 @@ func TestDeleteUserHandler_UserNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	mockService.AssertExpectations(t)
 }
+
+func (m *MockUserService) GetAllUsers() ([]models.User, error) {
+	args := m.Called()
+	return args.Get(0).([]models.User), args.Error(1)
+}

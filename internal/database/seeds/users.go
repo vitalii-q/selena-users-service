@@ -61,8 +61,8 @@ func SeedUsers(db *gorm.DB) {
 		LastName:  "admin",
 		Role:      "admin",
 		Birth:     nil,
-		Gender:    "male",
-		Country:   "Germany",
+		Gender:    ptr("male"),
+		Country:   ptr("Germany"),
 		CreatedAt: now,
 		UpdatedAt: now,
 	})
@@ -91,8 +91,8 @@ func SeedUsers(db *gorm.DB) {
 				LastName:  fmt.Sprintf("LastName%d", userIndex),
 				Role:      "user",
 				Birth:     birth,
-				Gender:    genders[rand.Intn(len(genders))],
-				Country:   countries[rand.Intn(len(countries))],
+				Gender:    ptr(genders[rand.Intn(len(genders))]),
+				Country:   ptr(countries[rand.Intn(len(countries))]),
 				CreatedAt: now,
 				UpdatedAt: now,
 			})
@@ -128,6 +128,11 @@ func SeedUsers(db *gorm.DB) {
 		}
 	}
 }
+
+/*func ptr(s string) {
+	panic("unimplemented")
+}*/
+func ptr(s string) *string { return &s }
 
 func randomInt(min, max int) int {
 	return rand.Intn(max-min+1) + min
