@@ -18,6 +18,18 @@ type Hotel struct {
 	Country     string `json:"country,omitempty"`
 }
 
+type Location struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Code   string `json:"code"`
+	Cities []City `json:"cities"`
+}
+
+type City struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // HotelServiceClient — клиент для работы с HotelService
 type HotelServiceClient struct {
 	BaseURL string
@@ -67,4 +79,19 @@ func (c *HotelServiceClient) ApplyBusinessLogic(userId string, hotels []Hotel) [
 		}
 	}
 	return filtered
+}
+
+// GetLocations - get locations list
+func (c *HotelServiceClient) GetLocations() ([]Location, error) {
+	resp, err := c.Client.Get(c.BaseURL + "/api/v1/locations")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var locations []Location
+	if err := json.NewDecoder(resp.Body).Decode(&locations); err != nil {
+		return nil, err
+	}
+	return locations, nil
 }

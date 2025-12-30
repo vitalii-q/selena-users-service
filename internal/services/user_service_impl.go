@@ -14,6 +14,7 @@ import (
 	//"github.com/pashagolub/pgxmock/v2"
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
+	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
@@ -21,14 +22,25 @@ import (
 type UserServiceImpl struct {
 	db db_interface
 	passwordHasher utils.PasswordHasher
+	hotelClient *external_services.HotelServiceClient
 }
 
 // NewUserServiceImpl - конструктор UserServiceImpl
-func NewUserServiceImpl(db db_interface, passwordHasher utils.PasswordHasher) *UserServiceImpl {
+func NewUserServiceImpl(
+	db db_interface, 
+	passwordHasher utils.PasswordHasher, 
+	hotelClient *external_services.HotelServiceClient,
+) *UserServiceImpl {
 	return &UserServiceImpl{
 		db: db, 
 		passwordHasher: passwordHasher,
+		hotelClient: hotelClient,
 	}
+}
+
+// HotelClient — возвращает клиент для работы с отелями
+func (s *UserServiceImpl) HotelClient() *external_services.HotelServiceClient {
+	return s.hotelClient
 }
 
 // CreateUser - создание нового пользователя
@@ -56,7 +68,7 @@ func (s *UserServiceImpl) CreateUser(user models.User) (models.User, error) {
 // GetUser - getting a user by UUID
 func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	var user models.User
-	var gender, country, city sql.NullString
+	var gender, countryID, cityID sql.NullString
 
 	query := `
 		SELECT
@@ -67,8 +79,8 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 			role,
 			birth,
 			gender,
-			country,
-			city,
+			country_id,
+			city_id,
 			created_at,
 			updated_at,
 			deleted_at
@@ -83,9 +95,9 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 		&user.Email,
 		&user.Role,
 		&user.Birth,
-		&user.Gender,
-		&user.Country,
-		&user.City,
+		&gender,
+		&countryID,
+		&cityID,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 		&user.DeletedAt,
@@ -102,11 +114,13 @@ func (s *UserServiceImpl) GetUser(id uuid.UUID) (models.User, error) {
 	if gender.Valid {
 		user.Gender = &gender.String
 	}
-	if country.Valid {
-		user.Country = &country.String
+	if countryID.Valid {
+		id, _ := uuid.Parse(countryID.String)
+		user.CountryID = &id
 	}
-	if city.Valid {
-		user.City = &city.String
+	if cityID.Valid {
+		id, _ := uuid.Parse(cityID.String)
+		user.CityID = &id
 	}
 
 	return user, nil
@@ -178,10 +192,11 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			role,
 			birth,
 			gender,
-			country,
-			city,
+			country_id,
+			city_id,
 			created_at,
-			updated_at
+			updated_at,
+			deleted_at
 		FROM users
 		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
@@ -199,7 +214,7 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 
 	for rows.Next() {
 		var user models.User
-		var gender, country, city sql.NullString
+		var gender, countryID, cityID sql.NullString
 
 		err := rows.Scan(
 			&user.ID,
@@ -209,10 +224,11 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 			&user.Role,
 			&user.Birth,
 			&gender,
-			&country,
-			&city,
+			&countryID,
+			&cityID,
 			&user.CreatedAt,
 			&user.UpdatedAt,
+			&user.DeletedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -222,11 +238,13 @@ func (s *UserServiceImpl) GetAllUsers() ([]models.User, error) {
 		if gender.Valid {
 			user.Gender = &gender.String
 		}
-		if country.Valid {
-			user.Country = &country.String
+		if countryID.Valid {
+			id, _ := uuid.Parse(countryID.String)
+			user.CountryID = &id
 		}
-		if city.Valid {
-			user.City = &city.String
+		if cityID.Valid {
+			id, _ := uuid.Parse(cityID.String)
+			user.CityID = &id
 		}
 
 		users = append(users, user)

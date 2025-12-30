@@ -13,21 +13,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 
+	"github.com/vitalii-q/selena-users-service/internal/helpers"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 )
 
 // UserHandler - обработчик HTTP-запросов, связанных с пользователями
 type UserHandler struct {
 	service   services.UserServiceInterface
 	validator *validator.Validate
+	locationsClient *external_services.LocationsClient
 }
 
 // NewUserHandler - конструктор UserHandler
-func NewUserHandler(service services.UserServiceInterface) *UserHandler {
+func NewUserHandler(service services.UserServiceInterface, locationsClient *external_services.LocationsClient) *UserHandler {
 	return &UserHandler{
 		service:   service,
 		validator: validator.New(),
+		locationsClient: locationsClient,
 	}
 }
 
@@ -68,7 +72,6 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 func (h *UserHandler) GetUserHandler(c *gin.Context) {
 	idStr := c.Param("id")
 
-	// Преобразуем строку в uuid.UUID
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
@@ -81,7 +84,20 @@ func (h *UserHandler) GetUserHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	// enrichment через LocationsClient
+	enrichedUsers, err := helpers.EnrichUsers(
+		[]models.User{user},
+		h.locationsClient,
+	)
+	if err != nil {
+		logrus.WithError(err).Error("failed to enrich user with locations")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to enrich user with locations",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, enrichedUsers[0])
 }
 
 // UpdateUserHandler - обработчик для обновления данных пользователя
@@ -178,8 +194,9 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	c.JSON(http.StatusNoContent, nil)
 }
 
-// GetUsersHandler — получить список всех пользователей
+// GetUsersHandler — получить список всех пользователей с country/city names
 func (h *UserHandler) GetUsersHandler(c *gin.Context) {
+	// 1️⃣ Получаем пользователей из сервиса
 	users, err := h.service.GetAllUsers()
 	if err != nil {
 		logrus.WithError(err).Error("failed to get users")
@@ -189,8 +206,19 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		return
 	}
 
+	// 2️⃣ Преобразуем в DTO с названиями стран и городов
+	usersResponse, err := helpers.EnrichUsers(users, h.locationsClient)
+	if err != nil {
+		logrus.WithError(err).Error("failed to enrich users with locations")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to enrich users with locations",
+		})
+		return
+	}
+
+	// 3️⃣ Отправляем ответ
 	c.JSON(http.StatusOK, gin.H{
-		"users": users,
-		"count": len(users),
+		"users": usersResponse,
+		"count": len(usersResponse),
 	})
 }

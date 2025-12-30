@@ -18,12 +18,18 @@ import (
 
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
+	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 )
 
 // MockUserService - это мок для интерфейса UserServiceInterface
 type MockUserService struct {
 	mock.Mock
+}
+
+// HotelClient — возвращает nil или фиктивный клиент
+func (m *MockUserService) HotelClient() *external_services.HotelServiceClient {
+	return nil
 }
 
 // Метод для создания пользователя
@@ -62,8 +68,11 @@ func TestCreateUserHandler(t *testing.T) {
 	defer mockDB.Close()
 
 	passwordHasher := &utils.FixedSaltHasher{}
-	userService := services.NewUserServiceImpl(mockDB, passwordHasher)
-	userHandler := NewUserHandler(userService)
+	hotelClient := external_services.NewHotelServiceClient()
+	locationsClient := external_services.NewLocationsClient()
+	
+	userService := services.NewUserServiceImpl(mockDB, passwordHasher, hotelClient)
+	userHandler := NewUserHandler(userService, locationsClient)
 
 	router := setupRouter(userHandler)
 
@@ -104,7 +113,9 @@ func TestCreateUserHandler_InvalidJSON(t *testing.T) {
 	defer mockDB.Close()
 
 	userService := services.NewUserService(mockDB, nil)
-	userHandler := NewUserHandler(userService)
+	locationsClient := external_services.NewLocationsClient()
+
+	userHandler := NewUserHandler(userService, locationsClient)
 	router := setupRouter(userHandler)
 
 	// Некорректный JSON (например, просто строка)
@@ -125,7 +136,9 @@ func TestCreateUserHandler_MissingField(t *testing.T) {
 	defer mockDB.Close()
 
 	userService := services.NewUserService(mockDB, nil)
-	userHandler := NewUserHandler(userService)
+	locationsClient := external_services.NewLocationsClient()
+
+	userHandler := NewUserHandler(userService, locationsClient)
 	router := setupRouter(userHandler)
 
 	// JSON без email
@@ -156,8 +169,11 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 	defer mockDB.Close()
 
 	passwordHasher := &utils.FixedSaltHasher{} // добавили хешер
-	userService := services.NewUserServiceImpl(mockDB, passwordHasher) // передаем его в сервис
-	userHandler := NewUserHandler(userService)
+	hotelClient := external_services.NewHotelServiceClient()
+	userService := services.NewUserServiceImpl(mockDB, passwordHasher, hotelClient) // передаем его в сервис
+	locationsClient := external_services.NewLocationsClient()
+
+	userHandler := NewUserHandler(userService, locationsClient)
 	router := setupRouter(userHandler)
 
 	// Данные пользователя

@@ -48,8 +48,16 @@ func main() {
 	passwordHasher := &utils.BcryptHasher{}
 
 	// Создаём сервис и обработчики
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher)
-	userHandler := handlers.NewUserHandler(userService)
+	hotelClient := external_services.NewHotelServiceClient()
+	locationsClient := external_services.NewLocationsClient() // Получение стран и городов из hotels-service
+
+	userService := services.NewUserServiceImpl(
+		dbPool,
+		passwordHasher,
+		hotelClient,
+	)
+
+	userHandler := handlers.NewUserHandler(userService, locationsClient)
 	authService := services.NewAuthService(dbPool)
 
 	// Создаём обработчик OAuth
@@ -58,7 +66,6 @@ func main() {
 		AuthService: authService,
 	}
 
-	hotelClient := external_services.NewHotelServiceClient()
 	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
 
 	// Запускаем сервер
