@@ -14,10 +14,10 @@ type User struct {
 	Email        string     `json:"email" validate:"required,email"`
 	Password     string     `json:"password,omitempty" validate:"required,min=6"`
 	Role         string     `json:"role" validate:"required,oneof=admin user"`
-	Birth        *time.Time `json:"birth,omitempty"`      // nullable
-	Gender  	 *string 	`json:"gender"`               // nullable
-	Country 	 *string 	`json:"country"`              // nullable
-	City    	 *string 	`json:"city"`                 // nullable
+	Birth        *time.Time `json:"birth,omitempty"`       // nullable
+	Gender  	 *string 	`json:"gender"`                // nullable
+	CountryID 	 *uuid.UUID `json:"country_id"`            // nullable
+	CityID    	 *uuid.UUID `json:"city_id"`               // nullable
 	CreatedAt    time.Time  `json:"created_at,omitempty"`
 	UpdatedAt    time.Time  `json:"updated_at,omitempty"`
 	DeletedAt    *time.Time `json:"deleted_at,omitempty"`  // nullable

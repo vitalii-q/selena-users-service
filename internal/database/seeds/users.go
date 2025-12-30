@@ -6,7 +6,9 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/vitalii-q/selena-users-service/internal/models"
+	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
 	"gorm.io/gorm"
 )
@@ -27,8 +29,39 @@ func SeedUsers(db *gorm.DB) {
 	// -------------------------------
 	// ❗ CLEARING THE TABLE
 	// -------------------------------
-	if err := db.Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE").Error; err != nil {
-	log.Fatalf("Failed to truncate users table: %v", err)}
+	//if err := db.Exec("TRUNCATE TABLE users RESTART IDENTITY CASCADE").Error; err != nil {
+	//	log.Fatalf("Failed to truncate users table: %v", err)
+	//}
+
+	// -------------------------------
+	// LOAD LOCATIONS (SAFE)
+	// -------------------------------
+	locationsClient := external_services.NewLocationsClient()
+	locations, err := locationsClient.GetLocations()
+	if err != nil {
+		log.Printf("⚠️ Locations service unavailable, users will be seeded without country/city: %v", err)
+	}
+
+	type City struct {
+		CountryID uuid.UUID
+		CityID    uuid.UUID
+	}
+
+	var countries []uuid.UUID
+	var cities []City
+
+	for _, c := range locations {
+		countryID, _ := uuid.Parse(c.ID)
+		countries = append(countries, countryID)
+
+		for _, city := range c.Cities {
+			cityID, _ := uuid.Parse(city.ID)
+			cities = append(cities, City{
+				CountryID: countryID,
+				CityID:    cityID,
+			})
+		}
+	}
 
 	// CONFIGURATION
 	totalUsers := 50
@@ -38,10 +71,7 @@ func SeedUsers(db *gorm.DB) {
 		{Min: 26, Max: 35},
 		{Min: 36, Max: 50},
 	}
-
-	countries := []string{"Germany", "France", "Ukraine"} // TODO: get contries and cities from hotels-service
 	genders := []string{"male", "female"}
-
 	now := time.Now()
 
 	var users []models.User
@@ -62,26 +92,40 @@ func SeedUsers(db *gorm.DB) {
 		Role:      "admin",
 		Birth:     nil,
 		Gender:    ptr("male"),
-		Country:   ptr("Germany"),
 		CreatedAt: now,
 		UpdatedAt: now,
 	})
 
 	passwordHashes = append(passwordHashes, adminPasswordHash)
 
-	// GENERATED USERS
+	// GENERATE USERS
 	usersPerRange := totalUsers / len(ageRanges)
 	userIndex := 1
 
-	for _, ageRange := range ageRanges {
+	for _, r := range ageRanges {
 		for i := 0; i < usersPerRange; i++ {
-			age := randomInt(ageRange.Min, ageRange.Max)
+			age := randomInt(r.Min, r.Max)
 			birth := birthDateFromAge(age)
+			hash, _ := hasher.HashPassword("password")
 
-			passwordHash, err := hasher.HashPassword("password")
-			if err != nil {
-				log.Printf("Failed to hash password: %v", err)
-				continue
+			var countryID *uuid.UUID
+			var cityID *uuid.UUID
+
+			if len(countries) > 0 {
+				c := countries[rand.Intn(len(countries))]
+				countryID = &c
+
+				var cityCandidates []City
+				for _, city := range cities {
+					if city.CountryID == c {
+						cityCandidates = append(cityCandidates, city)
+					}
+				}
+
+				if len(cityCandidates) > 0 {
+					cc := cityCandidates[rand.Intn(len(cityCandidates))]
+					cityID = &cc.CityID
+				}
 			}
 
 			users = append(users, models.User{
@@ -92,12 +136,13 @@ func SeedUsers(db *gorm.DB) {
 				Role:      "user",
 				Birth:     birth,
 				Gender:    ptr(genders[rand.Intn(len(genders))]),
-				Country:   ptr(countries[rand.Intn(len(countries))]),
+				CountryID: countryID,
+				CityID:    cityID,
 				CreatedAt: now,
 				UpdatedAt: now,
 			})
 
-			passwordHashes = append(passwordHashes, passwordHash)
+			passwordHashes = append(passwordHashes, hash)
 			userIndex++
 		}
 	}
@@ -114,7 +159,8 @@ func SeedUsers(db *gorm.DB) {
 				"role":          u.Role,
 				"birth":         u.Birth,
 				"gender":        u.Gender,
-				"country":       u.Country,
+				"country_id":    u.CountryID,
+				"city_id":       u.CityID,
 				"created_at":    u.CreatedAt,
 				"updated_at":    u.UpdatedAt,
 			})
