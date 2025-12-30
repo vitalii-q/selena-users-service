@@ -14,10 +14,10 @@ type UserResponse struct {
 	Gender    *string    `json:"gender"`
 
 	CountryID *uuid.UUID `json:"country_id"`
-	Country   string     `json:"country"`
+	Country   *string     `json:"country"`
 
 	CityID    *uuid.UUID `json:"city_id"`
-	City      string     `json:"city"`
+	City      *string     `json:"city"`
 
 	CreatedAt string     `json:"created_at"`
 	UpdatedAt string     `json:"updated_at"`
