@@ -49,7 +49,6 @@ func main() {
 
 	// Создаём сервис и обработчики
 	hotelClient := external_services.NewHotelServiceClient()
-	locationsClient := external_services.NewLocationsClient() // Получение стран и городов из hotels-service
 
 	userService := services.NewUserServiceImpl(
 		dbPool,
@@ -57,7 +56,7 @@ func main() {
 		hotelClient,
 	)
 
-	userHandler := handlers.NewUserHandler(userService, locationsClient)
+	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	authService := services.NewAuthService(dbPool)
 
 	// Создаём обработчик OAuth

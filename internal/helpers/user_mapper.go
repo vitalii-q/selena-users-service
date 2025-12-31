@@ -8,56 +8,58 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 )
 
-// EnrichUsers заполняет country/city по ID через LocationsClient
+// EnrichUsers заполняет country / city по ID через HotelServiceClient
 func EnrichUsers(
 	users []models.User,
-	HotelServiceClient *external_services.HotelServiceClient,
+	hotelServiceClient *external_services.HotelServiceClient,
 ) ([]dto.UserResponse, error) {
 
 	result := make([]dto.UserResponse, 0, len(users))
 
-	// Получаем все страны с городами одним запросом (best practice)
-	countries, err := HotelServiceClient.GetLocations()
+	// Получаем locations ОДИН раз
+	countries, err := hotelServiceClient.GetLocations()
 	if err != nil {
 		return nil, err
 	}
 
+	// Строим map-ы для O(1) lookup
+	countryMap := make(map[string]*string)
+	cityMap := make(map[string]*string)
+
+	for _, country := range countries {
+		countryName := country.Name // [правка] локальная переменная
+		countryMap[country.ID] = &countryName
+
+		for _, city := range country.Cities {
+			cityName := city.Name // [правка]
+			cityMap[city.ID] = &cityName
+		}
+	}
+
+	// Основной цикл по пользователям
 	for _, u := range users {
+
 		var countryName *string
 		var cityName *string
 
-		// Ищем страну по country_id
 		if u.CountryID != nil {
-			for _, c := range countries {
-				if c.ID == u.CountryID.String() {
-
-					// [правка] берём адрес строки
-					cn := c.Name
-					countryName = &cn
-
-					// 3️⃣ Ищем город внутри найденной страны
-					if u.CityID != nil {
-						for _, city := range c.Cities {
-							if city.ID == u.CityID.String() {
-								ct := city.Name
-								cityName = &ct
-								break
-							}
-						}
-					}
-					break
-				}
+			if name, ok := countryMap[u.CountryID.String()]; ok {
+				countryName = name
 			}
 		}
 
-		// Форматируем birth
+		if u.CityID != nil {
+			if name, ok := cityMap[u.CityID.String()]; ok {
+				cityName = name
+			}
+		}
+
 		var birthStr *string
 		if u.Birth != nil {
 			s := u.Birth.Format("2006-01-02")
 			birthStr = &s
 		}
 
-		// Собираем DTO
 		result = append(result, dto.UserResponse{
 			ID:        u.ID,
 			FirstName: u.FirstName,
@@ -68,9 +70,10 @@ func EnrichUsers(
 			Gender:    u.Gender,
 
 			CountryID: u.CountryID,
-			Country:   countryName,
-			CityID:    u.CityID,
-			City:      cityName,
+			Country:   countryName, // null если не найдено
+
+			CityID: u.CityID,
+			City:   cityName, // null если не найдено
 
 			CreatedAt: u.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: u.UpdatedAt.Format(time.RFC3339),
