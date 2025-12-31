@@ -36,7 +36,7 @@ func SeedUsers(db *gorm.DB) {
 	// -------------------------------
 	// LOAD LOCATIONS (SAFE)
 	// -------------------------------
-	locationsClient := external_services.NewLocationsClient()
+	locationsClient := external_services.NewHotelServiceClient()
 	locations, err := locationsClient.GetLocations()
 	if err != nil {
 		log.Printf("⚠️ Locations service unavailable, users will be seeded without country/city: %v", err)

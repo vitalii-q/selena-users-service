@@ -23,15 +23,15 @@ import (
 type UserHandler struct {
 	service   services.UserServiceInterface
 	validator *validator.Validate
-	locationsClient *external_services.LocationsClient
+	HotelServiceClient *external_services.HotelServiceClient
 }
 
 // NewUserHandler - конструктор UserHandler
-func NewUserHandler(service services.UserServiceInterface, locationsClient *external_services.LocationsClient) *UserHandler {
+func NewUserHandler(service services.UserServiceInterface, HotelServiceClient *external_services.HotelServiceClient) *UserHandler {
 	return &UserHandler{
 		service:   service,
 		validator: validator.New(),
-		locationsClient: locationsClient,
+		HotelServiceClient: HotelServiceClient,
 	}
 }
 
@@ -87,7 +87,7 @@ func (h *UserHandler) GetUserHandler(c *gin.Context) {
 	// enrichment через LocationsClient
 	enrichedUsers, err := helpers.EnrichUsers(
 		[]models.User{user},
-		h.locationsClient,
+		h.HotelServiceClient,
 	)
 	if err != nil {
 		logrus.WithError(err).Error("failed to enrich user with locations")
@@ -196,7 +196,7 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 
 // GetUsersHandler — получить список всех пользователей с country/city names
 func (h *UserHandler) GetUsersHandler(c *gin.Context) {
-	// 1️⃣ Получаем пользователей из сервиса
+	// Получаем пользователей из сервиса
 	users, err := h.service.GetAllUsers()
 	if err != nil {
 		logrus.WithError(err).Error("failed to get users")
@@ -206,8 +206,8 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		return
 	}
 
-	// 2️⃣ Преобразуем в DTO с названиями стран и городов
-	usersResponse, err := helpers.EnrichUsers(users, h.locationsClient)
+	// Преобразуем в DTO с названиями стран и городов
+	usersResponse, err := helpers.EnrichUsers(users, h.HotelServiceClient)
 	if err != nil {
 		logrus.WithError(err).Error("failed to enrich users with locations")
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -216,7 +216,7 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		return
 	}
 
-	// 3️⃣ Отправляем ответ
+	// Отправляем ответ
 	c.JSON(http.StatusOK, gin.H{
 		"users": usersResponse,
 		"count": len(usersResponse),

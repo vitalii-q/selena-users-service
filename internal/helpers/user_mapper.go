@@ -11,13 +11,13 @@ import (
 // EnrichUsers заполняет country/city по ID через LocationsClient
 func EnrichUsers(
 	users []models.User,
-	locationsClient *external_services.LocationsClient,
+	HotelServiceClient *external_services.HotelServiceClient,
 ) ([]dto.UserResponse, error) {
 
 	result := make([]dto.UserResponse, 0, len(users))
 
 	// Получаем все страны с городами одним запросом (best practice)
-	countries, err := locationsClient.GetLocations()
+	countries, err := HotelServiceClient.GetLocations()
 	if err != nil {
 		return nil, err
 	}

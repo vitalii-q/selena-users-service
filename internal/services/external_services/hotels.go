@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// ===== Models from hotels-service =====
+
 // Hotel — структура данных от HotelService
 type Hotel struct {
 	ID          string `json:"id"`
@@ -18,17 +20,19 @@ type Hotel struct {
 	Country     string `json:"country,omitempty"`
 }
 
-type Location struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Code   string `json:"code"`
-	Cities []City `json:"cities"`
+type LocationCountry struct {
+	ID     string         `json:"id"`
+	Name   string         `json:"name"`
+	Code   string         `json:"code"`
+	Cities []LocationCity `json:"cities"`
 }
 
-type City struct {
+type LocationCity struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+// ===== Client =====
 
 // HotelServiceClient — клиент для работы с HotelService
 type HotelServiceClient struct {
@@ -50,6 +54,8 @@ func NewHotelServiceClient() *HotelServiceClient {
 		},
 	}
 }
+
+// ===== Methods =====
 
 // GetHotels — получение списка отелей
 func (c *HotelServiceClient) GetHotels() ([]Hotel, error) {
@@ -82,7 +88,7 @@ func (c *HotelServiceClient) ApplyBusinessLogic(userId string, hotels []Hotel) [
 }
 
 // GetLocations - get locations list
-func (c *HotelServiceClient) GetLocations() ([]Location, error) {
+/*func (c *HotelServiceClient) GetLocations() ([]Location, error) {
 	resp, err := c.Client.Get(c.BaseURL + "/api/v1/locations")
 	if err != nil {
 		return nil, err
@@ -93,5 +99,24 @@ func (c *HotelServiceClient) GetLocations() ([]Location, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&locations); err != nil {
 		return nil, err
 	}
+	return locations, nil
+}*/
+
+func (c *HotelServiceClient) GetLocations() ([]LocationCountry, error) {
+	resp, err := c.Client.Get(c.BaseURL + "/api/v1/locations")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get locations: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("locations service returned %d", resp.StatusCode)
+	}
+
+	var locations []LocationCountry
+	if err := json.NewDecoder(resp.Body).Decode(&locations); err != nil {
+		return nil, fmt.Errorf("decode locations error: %w", err)
+	}
+
 	return locations, nil
 }
