@@ -37,3 +37,4 @@ bin/main
 
 # DB volume local data
 /_docker/users-db-data
+/_docker/redis-data

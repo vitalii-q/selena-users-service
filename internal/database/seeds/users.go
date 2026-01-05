@@ -33,9 +33,7 @@ func SeedUsers(db *gorm.DB) {
 	//	log.Fatalf("Failed to truncate users table: %v", err)
 	//}
 
-	// -------------------------------
 	// LOAD LOCATIONS (SAFE)
-	// -------------------------------
 	locationsClient := external_services.NewHotelServiceClient()
 	locations, err := locationsClient.GetLocations()
 	if err != nil {

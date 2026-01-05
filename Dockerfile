@@ -10,6 +10,9 @@
 # Launch command in the root directory /users-service
 # docker run -d --name users-db -p 9265:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=users_db -v $(pwd)/_docker/users-db-data:/var/lib/postgresql/data --network selena-dev_app_network postgres:15
 
+# --- Start Redis for microservice
+# docker run -d --name users-redis -p 9765:6379 -v $(pwd)/_docker/redis-data:/data redis:7
+
 # The sequence of launching microservices: hotels-service -> users-service -> bookings-service
 
 FROM golang:1.24.0-alpine AS builder
