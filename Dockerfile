@@ -1,6 +1,6 @@
 # users-service/Dockerfile
 
-# --- Start microservice
+# === Build and launch docker microservice image =======================================================
 # docker build --no-cache --platform linux/amd64 -t selena-users-service:amd64 .
 #
 # docker run -d --name users-service --env-file .env -p 9065:9065 --network selena-dev_app_network -v $(pwd):/app/users-service selena-users-service:amd64
@@ -14,6 +14,14 @@
 # docker run -d --name users-redis -p 9765:6379 -v $(pwd)/_docker/redis-data:/data redis:7
 
 # The sequence of launching microservices: hotels-service -> users-service -> bookings-service
+
+
+# === ECR repository ===========================================================
+
+# Add tag and push users-service image to ECR repository:
+# docker tag selena-users-service:amd64 235484063004.dkr.ecr.eu-central-1.amazonaws.com/selena-users-service:amd64
+#
+# docker push 235484063004.dkr.ecr.eu-central-1.amazonaws.com/selena-users-service:amd64
 
 FROM golang:1.24.0-alpine AS builder
 
