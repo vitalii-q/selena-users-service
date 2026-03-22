@@ -6,18 +6,19 @@ set -e # Script crash on any error
 echo "📄 Environment variables loaded:"
 env | grep USERS_ || true
 
-MAX_RETRIES=10
+MAX_RETRIES=90
 RETRY_COUNT=0
+SLEEP_SECONDS=15
 
 echo "⏳ Waiting for PostgreSQL at ${USERS_POSTGRES_DB_HOST}:${USERS_POSTGRES_DB_PORT_INNER}..."
 until nc -z "$USERS_POSTGRES_DB_HOST" "$USERS_POSTGRES_DB_PORT_INNER"; do
   RETRY_COUNT=$((RETRY_COUNT + 1))
-  echo "✅ Attempt $RETRY_COUNT"
+  echo "⏳ Attempt ${RETRY_COUNT}/${MAX_RETRIES} — PostgreSQL not ready yet"
   if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
     echo "❌ Failed to connect to PostgreSQL after ${MAX_RETRIES} attempts. Exiting."
     exit 1
   fi
-  sleep 1
+  sleep "$SLEEP_SECONDS"
 done
 echo "✅ PostgreSQL is available!"
 
