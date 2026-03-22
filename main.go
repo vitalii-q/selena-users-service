@@ -66,13 +66,14 @@ func main() {
 	}
 
 	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
+	locationsHandler := handlers.NewLocationsHandler(hotelClient)
 
 	// Запускаем сервер
 	port := os.Getenv("APP_PORT")
 	if port == "" {
 		port = "9065" // По умолчанию основной контейнер работает на 9065
 	}
-	r := setupRouter(userHandler, OAuthHandler, userHotelsHandler)
+	r := setupRouter(userHandler, OAuthHandler, userHotelsHandler, locationsHandler)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -111,6 +112,7 @@ func setupRouter(
 	userHandler *handlers.UserHandler, 
 	authHandler *handlers.OAuthHandler,
 	userHotelsHandler *handlers.UserHotelsHandler,
+	locationsHandler *handlers.LocationsHandler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -135,16 +137,18 @@ func setupRouter(
 
 	//logrus.Debug("test!!!: s", authHandler)
 
-	// get all hotels from hotels-service (did it for basic communication between microservices)
-	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
-
-	// API routers
+	// --- API routers ---
 	r.POST("/api/v1/users", userHandler.CreateUserHandler)
 	r.GET("/api/v1/users/:id", userHandler.GetUserHandler)
 	r.PUT("/api/v1/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/api/v1/users/:id", userHandler.DeleteUserHandler)
 
-	r.GET("/api/v1/users", userHandler.GetUsersHandler) // get all users
+	r.GET("/api/v1/users", userHandler.GetUsersHandler) // get all users with location names
+
+	// get all hotels from hotels-service (did it for basic communication between microservices)
+	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
+
+	r.GET("/api/v1/locations", locationsHandler.GetLocationsHandler)
 
 	return r
 }

@@ -13,6 +13,8 @@ import (
 )
 
 // run seeds: docker exec -it users-service go run cmd/seed/main.go
+//
+// The order of seeding: hotels, locations (hotels-service) -> users (users-service) -> bookings (bookings-service)
 func main() {
 	// downloud .env
 	err := godotenv.Load(".env")

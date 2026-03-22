@@ -27,11 +27,11 @@ func EnrichUsers(
 	cityMap := make(map[string]*string)
 
 	for _, country := range countries {
-		countryName := country.Name // [правка] локальная переменная
+		countryName := country.Name // локальная переменная
 		countryMap[country.ID] = &countryName
 
 		for _, city := range country.Cities {
-			cityName := city.Name // [правка]
+			cityName := city.Name
 			cityMap[city.ID] = &cityName
 		}
 	}
