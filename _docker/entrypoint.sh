@@ -22,20 +22,28 @@ until nc -z "$USERS_POSTGRES_DB_HOST" "$USERS_POSTGRES_DB_PORT_INNER"; do
 done
 echo "✅ PostgreSQL is available!"
 
+# Determine SSL mode based on environment
+if [ "$PROJECT_SUFFIX" = "dev" ]; then
+  SSLMODE="disable"
+else
+  SSLMODE="require"
+fi
+echo "🔐 Using SSL mode: $SSLMODE"
+
 # Connection check
 echo "🔐 Verifying connection to PostgreSQL..."
-PGPASSWORD=$USERS_POSTGRES_DB_PASS psql -h "$USERS_POSTGRES_DB_HOST" -U "$USERS_POSTGRES_DB_USER" -p "$USERS_POSTGRES_DB_PORT_INNER" -d postgres -c "SELECT 1;" >/dev/null
-if [ $? -ne 0 ]; then
+PSQL_DSN="postgresql://$USERS_POSTGRES_DB_USER:$USERS_POSTGRES_DB_PASS@$USERS_POSTGRES_DB_HOST:$USERS_POSTGRES_DB_PORT_INNER/$USERS_POSTGRES_DB_NAME?sslmode=$SSLMODE"
+PGPASSWORD=$USERS_POSTGRES_DB_PASS psql "$PSQL_DSN" -c "SELECT 1;" >/dev/null || {
   echo "❌ Unable to connect to PostgreSQL."
   exit 1
-fi
+}
 
 # Checking and creating a database
 echo "🔍 Checking if database '${USERS_POSTGRES_DB_NAME}' exists..."
-DB_EXISTS=$(PGPASSWORD=$USERS_POSTGRES_DB_PASS psql -h "$USERS_POSTGRES_DB_HOST" -U "$USERS_POSTGRES_DB_USER" -p "$USERS_POSTGRES_DB_PORT_INNER" -tAc "SELECT 1 FROM pg_database WHERE datname='${USERS_POSTGRES_DB_NAME}';")
+DB_EXISTS=$(PGPASSWORD=$USERS_POSTGRES_DB_PASS psql "postgresql://$USERS_POSTGRES_DB_USER:$USERS_POSTGRES_DB_PASS@$USERS_POSTGRES_DB_HOST:$USERS_POSTGRES_DB_PORT_INNER/postgres?sslmode=$SSLMODE" -tAc "SELECT 1 FROM pg_database WHERE datname='${USERS_POSTGRES_DB_NAME}';")
 if [ "$DB_EXISTS" != "1" ]; then
   echo "🛠 Creating database '${USERS_POSTGRES_DB_NAME}'..."
-  PGPASSWORD=$USERS_POSTGRES_DB_PASS psql -h "$USERS_POSTGRES_DB_HOST" -U "$USERS_POSTGRES_DB_USER" -p "$USERS_POSTGRES_DB_PORT_INNER" -d postgres -c "CREATE DATABASE ${USERS_POSTGRES_DB_NAME};"
+  PGPASSWORD=$USERS_POSTGRES_DB_PASS psql "postgresql://$USERS_POSTGRES_DB_USER:$USERS_POSTGRES_DB_PASS@$USERS_POSTGRES_DB_HOST:$USERS_POSTGRES_DB_PORT_INNER/postgres?sslmode=$SSLMODE" -c "CREATE DATABASE ${USERS_POSTGRES_DB_NAME};"
   echo "✅ Database created."
 else
   echo "📦 Database '${USERS_POSTGRES_DB_NAME}' already exists."
