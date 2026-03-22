@@ -143,7 +143,7 @@ func setupRouter(
 	r.PUT("/api/v1/users/:id", userHandler.UpdateUserHandler)
 	r.DELETE("/api/v1/users/:id", userHandler.DeleteUserHandler)
 
-	r.GET("/api/v1/users", userHandler.GetUsersHandler) // get all users with location names
+	r.GET("/api/v1/users", userHandler.GetUsersHandler) // ad ?expand=locations to get all users with location names
 
 	// get all hotels from hotels-service (did it for basic communication between microservices)
 	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)

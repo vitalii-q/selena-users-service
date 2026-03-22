@@ -196,7 +196,10 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 
 // GetUsersHandler — получить список всех пользователей с country/city names
 func (h *UserHandler) GetUsersHandler(c *gin.Context) {
-	// Получаем пользователей из сервиса
+	// read query parameter
+	expand := c.Query("expand")
+
+	// Get users from service
 	users, err := h.service.GetAllUsers()
 	if err != nil {
 		logrus.WithError(err).Error("failed to get users")
@@ -206,19 +209,28 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		return
 	}
 
-	// Преобразуем в DTO с названиями стран и городов
-	usersResponse, err := helpers.EnrichUsers(users, h.HotelServiceClient)
-	if err != nil {
-		logrus.WithError(err).Error("failed to enrich users with locations")
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to enrich users with locations",
+	if expand == "locations" {
+		// Convert to DTO with names of countries and cities
+		usersResponse, err := helpers.EnrichUsers(users, h.HotelServiceClient)
+		if err != nil {
+			logrus.WithError(err).Error("failed to enrich users with locations")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to enrich users with locations",
+			})
+			return
+		}
+
+		// Return users with location names
+		c.JSON(http.StatusOK, gin.H{
+			"users": usersResponse,
+			"count": len(usersResponse),
 		})
 		return
 	}
 
-	// Отправляем ответ
+	// Return users
 	c.JSON(http.StatusOK, gin.H{
-		"users": usersResponse,
-		"count": len(usersResponse),
+		"users": users,
+		"count": len(users),
 	})
 }
