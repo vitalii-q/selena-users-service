@@ -71,7 +71,7 @@ func TestCreateUserHandler(t *testing.T) {
 	hotelClient := external_services.NewHotelServiceClient()
 	locationsClient := external_services.NewHotelServiceClient()
 	
-	userService := services.NewUserServiceImpl(mockDB, passwordHasher, hotelClient)
+	userService := services.NewUserService(mockDB, passwordHasher, hotelClient)
 	userHandler := NewUserHandler(userService, locationsClient)
 
 	router := setupRouter(userHandler)
@@ -112,7 +112,7 @@ func TestCreateUserHandler_InvalidJSON(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB, nil)
+	userService := services.NewUserServiceInterface(mockDB, nil)
 	locationsClient := external_services.NewHotelServiceClient()
 
 	userHandler := NewUserHandler(userService, locationsClient)
@@ -135,7 +135,7 @@ func TestCreateUserHandler_MissingField(t *testing.T) {
 	assert.NoError(t, err)
 	defer mockDB.Close()
 
-	userService := services.NewUserService(mockDB, nil)
+	userService := services.NewUserServiceInterface(mockDB, nil)
 	locationsClient := external_services.NewHotelServiceClient()
 
 	userHandler := NewUserHandler(userService, locationsClient)
@@ -170,7 +170,7 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 
 	passwordHasher := &utils.FixedSaltHasher{} // добавили хешер
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(mockDB, passwordHasher, hotelClient) // передаем его в сервис
+	userService := services.NewUserService(mockDB, passwordHasher, hotelClient) // передаем его в сервис
 	locationsClient := external_services.NewHotelServiceClient()
 
 	userHandler := NewUserHandler(userService, locationsClient)

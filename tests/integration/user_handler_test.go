@@ -37,7 +37,7 @@ func TestCreateUser(t *testing.T) {
 	// Создаем объект passwordHasher (можно использовать реальную реализацию)
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 
 	// Создаем нового пользователя
 	user := models.User{
@@ -65,7 +65,7 @@ func TestCreateUser(t *testing.T) {
 func TestCreateUser_InvalidEmail(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -91,7 +91,7 @@ func TestCreateUser_InvalidEmail(t *testing.T) {
 func TestCreateUserWithEmptyFields(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -109,7 +109,7 @@ func TestCreateUserWithEmptyFields(t *testing.T) {
 func TestCreateUserWithDuplicateEmail(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -133,7 +133,7 @@ func TestCreateUserWithDuplicateEmail(t *testing.T) {
 func TestCreateUser_ShortPassword(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -157,7 +157,7 @@ func TestCreateUser_ShortPassword(t *testing.T) {
 func TestGetUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 
 	// Создаем тестового пользователя
@@ -190,7 +190,7 @@ func TestGetUserHandler(t *testing.T) {
 func TestGetNonExistingUser(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -206,7 +206,7 @@ func TestGetNonExistingUser(t *testing.T) {
 func TestGetUserWithInvalidUUID(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -222,7 +222,7 @@ func TestUpdateUserHandler(t *testing.T) {
 	// Создаем сервис и handler
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 
 	// Создаем пользователя
@@ -277,7 +277,7 @@ func TestUpdateUserHandler(t *testing.T) {
 func TestUpdateUserWithInvalidEmail(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -302,7 +302,7 @@ func TestUpdateUserWithInvalidEmail(t *testing.T) {
 func TestUpdateUser_ForbiddenFieldUpdate(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -329,7 +329,7 @@ func TestUpdateUser_ForbiddenFieldUpdate(t *testing.T) {
 func TestUpdateUser_InvalidJSON(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -356,7 +356,7 @@ func TestUpdateUser_InvalidJSON(t *testing.T) {
 func TestUpdateUser_ShortPasswordRejected(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 
@@ -386,7 +386,7 @@ func TestUpdateUser_ShortPasswordRejected(t *testing.T) {
 func TestDeleteUserHandler(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 
 	user := models.User{
@@ -414,7 +414,7 @@ func TestDeleteUserHandler(t *testing.T) {
 func TestDeleteNonExistingUser(t *testing.T) {
 	passwordHasher := &utils.BcryptHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
-	userService := services.NewUserServiceImpl(dbPool, passwordHasher, hotelClient)
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	router := setupTestRouter(userHandler)
 

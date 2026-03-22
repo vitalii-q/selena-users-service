@@ -14,7 +14,7 @@ import (
 )
 
 type OAuthHandler struct {
-	UserService *services.UserServiceImpl
+	UserService *services.UserService
 	AuthService *services.AuthService
 }
 

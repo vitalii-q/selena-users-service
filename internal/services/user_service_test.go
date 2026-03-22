@@ -50,7 +50,7 @@ func TestCreateUser(t *testing.T) {
 
 	// Создаем сервис с мокнутым соединением и передаем мок базы данных
 	passwordHasher := &MockPasswordHasher{} // Или используйте настоящий мок хешера
-	userService := NewUserService(mock, passwordHasher)
+	userService := NewUserServiceInterface(mock, passwordHasher)
 
 	// Запускаем тестируемый метод
 	createdUser, err := userService.CreateUser(newUser)
@@ -89,7 +89,7 @@ func TestGetUser(t *testing.T) {
 			AddRow(expectedUser.ID, expectedUser.FirstName, expectedUser.LastName, expectedUser.Email, expectedUser.Role, expectedUser.CreatedAt, expectedUser.UpdatedAt, nil))
 
 	// Создаем сервис с мокнутым соединением
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	// Запускаем тестируемый метод
 	user, err := userService.GetUser(userID)
@@ -114,7 +114,7 @@ func TestGetUser_NotFound(t *testing.T) {
 		WithArgs(userID.String()).
 		WillReturnError(pgx.ErrNoRows)
 
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	_, err = userService.GetUser(userID)
 
@@ -140,7 +140,7 @@ func TestUpdateUser(t *testing.T) {
 		WithArgs(updatedUser.FirstName, updatedUser.LastName, updatedUser.Email, userID).
 		WillReturnRows(pgxmock.NewRows([]string{"updated_at"}).AddRow(updatedAt))
 
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	result, err := userService.UpdateUser(userID, updatedUser)
 
@@ -166,7 +166,7 @@ func TestUpdateUser_NotFound(t *testing.T) {
 		WithArgs(updatedUser.FirstName, updatedUser.LastName, updatedUser.Email, userID).
 		WillReturnError(pgx.ErrNoRows)
 
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	result, err := userService.UpdateUser(userID, updatedUser)
 
@@ -187,7 +187,7 @@ func TestDeleteUser(t *testing.T) {
 		WithArgs(userID).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	err = userService.DeleteUser(userID)
 
@@ -206,7 +206,7 @@ func TestDeleteUser_Error(t *testing.T) {
 		WithArgs(userID).
 		WillReturnError(errors.New("database error"))
 
-	userService := NewUserService(mock, nil)
+	userService := NewUserServiceInterface(mock, nil)
 
 	err = userService.DeleteUser(userID)
 

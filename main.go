@@ -50,7 +50,7 @@ func main() {
 	// Создаём сервис и обработчики
 	hotelClient := external_services.NewHotelServiceClient()
 
-	userService := services.NewUserServiceImpl(
+	userService := services.NewUserService(
 		dbPool,
 		passwordHasher,
 		hotelClient,
