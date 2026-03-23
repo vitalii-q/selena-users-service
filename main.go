@@ -99,7 +99,17 @@ func main() {
 
 // setupLogger настраивает логирование
 func setupLogger() {
-	logrus.SetLevel(logrus.DebugLevel)         // Устанавливаем глобальный уровень логирования
+	projectSuffix := os.Getenv("PROJECT_SUFFIX")
+
+	// production → меньше логов
+	if projectSuffix == "prod" {
+		logrus.SetLevel(logrus.InfoLevel)
+		gin.SetMode(gin.ReleaseMode)
+	} else {
+		logrus.SetLevel(logrus.DebugLevel)  // Устанавливаем глобальный уровень логирования для dev
+		gin.SetMode(gin.DebugMode)
+	}
+	
 	logrus.SetFormatter(&logrus.TextFormatter{ // Опционально: настраиваем формат логов
 		FullTimestamp: true,
 		ForceColors:   true,
@@ -114,17 +124,24 @@ func setupRouter(
 	userHotelsHandler *handlers.UserHotelsHandler,
 	locationsHandler *handlers.LocationsHandler,
 ) *gin.Engine {
-	r := gin.Default()
+	// --- Router logs settings ---
+	r := gin.New()
 
-	// Логгер для всех входящих запросов
-	r.Use(func(c *gin.Context) {
-		logrus.Infof("Incoming request: %s %s", c.Request.Method, c.Request.URL.Path)
-		c.Next()
-	})
+	// Gin logger without health-check endpoints
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		SkipPaths: []string{
+			"/health", // health endpoint
+		},
+	}))
 
+	// Recovery middleware (panic protection)
+	r.Use(gin.Recovery())
+
+
+	// --- Router routes settings ---
 	// test routes
 	r.GET("/", handleRoot)
-	r.GET("/test", test)
+	r.GET("/health", health)
 	r.GET("/protected", protected)
 
 	// authenticate
@@ -171,8 +188,8 @@ func handleRoot(c *gin.Context) {
 }
 
 // handleHealth отвечает на запросы к "/health"
-func test(c *gin.Context) {
-	logrus.Info("Test check request")
+func health(c *gin.Context) {
+	//logrus.Info("Test check request")
 	c.JSON(http.StatusOK, gin.H{"status": "test ok"})
 }
 
