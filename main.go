@@ -3,15 +3,12 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/vitalii-q/selena-users-service/internal/database"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/vitalii-q/selena-users-service/internal/router"
+	"github.com/vitalii-q/selena-users-service/internal/server"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
@@ -51,36 +48,8 @@ func main() {
 	r := router.SetupRouter(dbPool, userHandler, authHandler, userHotelsHandler, locationsHandler)
 
 	// --- HTTP server ---
-	port := os.Getenv("APP_PORT")
-	if port == "" {
-		port = "9065"
-	}
+	srv := server.StartServer(r)
 
-	server := &http.Server{
-		Addr:    ":" + port,
-		Handler: r,
-	}
-
-	go func() {
-		log.Printf("Starting users-service on port %s...", port)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed: %v", err)
-		}
-	}()
-
-	// --- Graceful shutdown ---
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
-	<-sig
-
-	log.Println("Shutting down users-service...")
-	cancel()
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Server shutdown failed: %v", err)
-	}
-
-	log.Println("Server exited cleanly")
+	// graceful shutdown
+	server.GracefulShutdown(srv, cancel, 5*time.Second)
 }
