@@ -3,9 +3,10 @@ package router
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func protected(c *gin.Context) {
@@ -15,6 +16,10 @@ func protected(c *gin.Context) {
 
 // getPublicIPv4 — IMDSv2 support for EC2 public IPv4
 func getPublicIPv4() string {
+	if os.Getenv("PROJECT_SUFFIX") == "dev" {
+		return "127.0.0.1" // local environment
+	}
+
 	client := &http.Client{}
 
 	// 1. IMDSv2 token

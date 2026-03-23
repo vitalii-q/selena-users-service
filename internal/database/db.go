@@ -36,7 +36,6 @@ func GetDatabaseURL() string {
 
 // Connect creates a pgx connection pool
 func Connect(ctx context.Context) (*pgxpool.Pool, error) {
-
 	databaseURL := GetDatabaseURL()
 
 	pool, err := pgxpool.New(ctx, databaseURL)

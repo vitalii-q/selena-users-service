@@ -19,7 +19,6 @@ func SetupRouter(
 	userHotelsHandler *handlers.UserHotelsHandler,
 	locationsHandler *handlers.LocationsHandler,
 ) *gin.Engine {
-
 	r := gin.New()
 
 	// --- Middleware ---
