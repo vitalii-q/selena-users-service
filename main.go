@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"time"
 
 	//"encoding/json"
 	"log"
@@ -73,7 +74,7 @@ func main() {
 	if port == "" {
 		port = "9065" // По умолчанию основной контейнер работает на 9065
 	}
-	r := setupRouter(userHandler, OAuthHandler, userHotelsHandler, locationsHandler)
+	r := setupRouter(dbPool, userHandler, OAuthHandler, userHotelsHandler, locationsHandler)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -119,6 +120,7 @@ func setupLogger() {
 
 // setupRouter инициализирует маршрутизатор и эндпоинты
 func setupRouter(
+	dbPool *pgxpool.Pool,
 	userHandler *handlers.UserHandler, 
 	authHandler *handlers.OAuthHandler,
 	userHotelsHandler *handlers.UserHotelsHandler,
@@ -141,7 +143,8 @@ func setupRouter(
 	// --- Router routes settings ---
 	// test routes
 	r.GET("/", handleRoot)
-	r.GET("/health", health)
+	r.GET("/health", health)      // liveness
+	r.GET("/ready", ready(dbPool)) // readiness
 	r.GET("/protected", protected)
 
 	// authenticate
@@ -191,6 +194,31 @@ func handleRoot(c *gin.Context) {
 func health(c *gin.Context) {
 	//logrus.Info("Test check request")
 	c.JSON(http.StatusOK, gin.H{"status": "test ok"})
+}
+
+// handleHealth отвечает на запросы к "/ready", показывает доступность базы данных
+func ready(dbPool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		err := dbPool.Ping(ctx)
+		if err != nil {
+			logrus.Errorf("Readiness check failed: DB unreachable: %v", err)
+
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "not ready",
+				"db":     "down",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ready",
+			"db":     "up",
+		})
+	}
 }
 
 // protected отвечает на запросы к "/protected" защищен oauth2
