@@ -1,9 +1,12 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // manually assemble the connection string
@@ -29,4 +32,17 @@ func GetDatabaseURL() string {
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		dbUser, dbPassword, dbHost, dbPort, dbName, sslmode)
+}
+
+// Connect creates a pgx connection pool
+func Connect(ctx context.Context) (*pgxpool.Pool, error) {
+
+	databaseURL := GetDatabaseURL()
+
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to database: %w", err)
+	}
+
+	return pool, nil
 }

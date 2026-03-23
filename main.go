@@ -2,79 +2,59 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"io/ioutil"
-	"time"
-
-	//"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/vitalii-q/selena-users-service/internal/database"
 	"github.com/vitalii-q/selena-users-service/internal/handlers"
+	"github.com/vitalii-q/selena-users-service/internal/router"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 	"github.com/vitalii-q/selena-users-service/internal/utils"
+	//"github.com/vitalii-q/selena-users-service/internal/logger"
 )
 
-type RootResponse struct {
-    Message string `json:"message"`
-    Host    string `json:"host"`
-}
-
-func init() {
-	setupLogger() // Настраиваем логирование
-}
-
 func main() {
-	// Создаём контекст с отменой
+	// --- Context with cancel for graceful shutdown ---
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Освобождаем ресурсы при выходе
+	defer cancel()
 
-	// Подключаемся к базе
-	dbPool, err := pgxpool.New(ctx, database.GetDatabaseURL())
+	// --- Logger setup ---
+	//logger.Setup()
+
+	// --- Database connection ---
+	dbPool, err := database.Connect(ctx)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
+		log.Fatalf("Database connection failed: %v", err)
 	}
-	defer dbPool.Close() // Закроется корректно при завершении программы
+	defer dbPool.Close()
 
-	// Создаём хешер паролей (обычный)
+	// --- Services and handlers ---
 	passwordHasher := &utils.BcryptHasher{}
-
-	// Создаём сервис и обработчики
 	hotelClient := external_services.NewHotelServiceClient()
 
-	userService := services.NewUserService(
-		dbPool,
-		passwordHasher,
-		hotelClient,
-	)
-
+	userService := services.NewUserService(dbPool, passwordHasher, hotelClient)
 	userHandler := handlers.NewUserHandler(userService, hotelClient)
 	authService := services.NewAuthService(dbPool)
-
-	// Создаём обработчик OAuth
-	OAuthHandler := &handlers.OAuthHandler{
+	authHandler := &handlers.OAuthHandler{
 		UserService: userService,
 		AuthService: authService,
 	}
-
 	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
 	locationsHandler := handlers.NewLocationsHandler(hotelClient)
 
-	// Запускаем сервер
+	// --- Router setup ---
+	r := router.SetupRouter(dbPool, userHandler, authHandler, userHotelsHandler, locationsHandler)
+
+	// --- HTTP server ---
 	port := os.Getenv("APP_PORT")
 	if port == "" {
-		port = "9065" // По умолчанию основной контейнер работает на 9065
+		port = "9065"
 	}
-	r := setupRouter(dbPool, userHandler, OAuthHandler, userHotelsHandler, locationsHandler)
 
 	server := &http.Server{
 		Addr:    ":" + port,
@@ -82,196 +62,25 @@ func main() {
 	}
 
 	go func() {
-		logrus.Infof("Starting server on port %s...", port)
+		log.Printf("Starting users-service on port %s...", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logrus.Fatalf("Server failed: %v", err)
+			log.Fatalf("Server failed: %v", err)
 		}
 	}()
 
-	// Ждем сигнала завершения (например, Ctrl+C)
+	// --- Graceful shutdown ---
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 	<-sig
 
-	log.Println("Shutting down server...")
-	cancel()             // Завершаем контекст
-	server.Shutdown(ctx) // Корректно останавливаем сервер
-}
+	log.Println("Shutting down users-service...")
+	cancel()
 
-// setupLogger настраивает логирование
-func setupLogger() {
-	projectSuffix := os.Getenv("PROJECT_SUFFIX")
-
-	// production → меньше логов
-	if projectSuffix == "prod" {
-		logrus.SetLevel(logrus.InfoLevel)
-		gin.SetMode(gin.ReleaseMode)
-	} else {
-		logrus.SetLevel(logrus.DebugLevel)  // Устанавливаем глобальный уровень логирования для dev
-		gin.SetMode(gin.DebugMode)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer shutdownCancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Server shutdown failed: %v", err)
 	}
-	
-	logrus.SetFormatter(&logrus.TextFormatter{ // Опционально: настраиваем формат логов
-		FullTimestamp: true,
-		ForceColors:   true,
-	})
-	logrus.SetOutput(os.Stdout)
-}
 
-// setupRouter инициализирует маршрутизатор и эндпоинты
-func setupRouter(
-	dbPool *pgxpool.Pool,
-	userHandler *handlers.UserHandler, 
-	authHandler *handlers.OAuthHandler,
-	userHotelsHandler *handlers.UserHotelsHandler,
-	locationsHandler *handlers.LocationsHandler,
-) *gin.Engine {
-	// --- Router logs settings ---
-	r := gin.New()
-
-	// Gin logger without health-check endpoints
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		SkipPaths: []string{
-			"/health", // health endpoint
-		},
-	}))
-
-	// Recovery middleware (panic protection)
-	r.Use(gin.Recovery())
-
-
-	// --- Router routes settings ---
-	// test routes
-	r.GET("/", handleRoot)
-	r.GET("/health", health)      // liveness
-	r.GET("/ready", ready(dbPool)) // readiness
-	r.GET("/protected", protected)
-
-	// authenticate
-	r.POST("/users/oauth2/authenticate", authHandler.Authenticate)
-	//r.GET("/oauth2/authorize", authHandler.GetAuthorize)
-	//r.POST("/oauth2/token", authHandler.PostToken)
-
-	b, _ := json.Marshal(authHandler) // +
-	logrus.Debugf("authHandler: %s", string(b))
-
-	//logrus.Debug("test!!!: s", authHandler)
-
-	// --- API routers ---
-	r.POST("/api/v1/users", userHandler.CreateUserHandler)
-	r.GET("/api/v1/users/:id", userHandler.GetUserHandler)
-	r.PUT("/api/v1/users/:id", userHandler.UpdateUserHandler)
-	r.DELETE("/api/v1/users/:id", userHandler.DeleteUserHandler)
-
-	r.GET("/api/v1/users", userHandler.GetUsersHandler) // ad ?expand=locations to get all users with location names
-
-	// get all hotels from hotels-service (did it for basic communication between microservices)
-	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
-
-	r.GET("/api/v1/locations", locationsHandler.GetLocationsHandler)
-
-	return r
-}
-
-// handleRoot отвечает на запросы к "/"
-func handleRoot(c *gin.Context) {
-    hostname, err := os.Hostname()
-    if err != nil {
-        hostname = "unknown"
-    }
-
-	publicIP := getPublicIPv4()
-
-	logrus.Info("GET / hit")
-	c.JSON(http.StatusOK, gin.H{
-        "message":     "Hello, users-service!",
-        "Private_DNS": hostname, // вернём hostname/имя инстанса
-		"Public_IPv4": publicIP,
-    })
-}
-
-// handleHealth отвечает на запросы к "/health"
-func health(c *gin.Context) {
-	//logrus.Info("Test check request")
-	c.JSON(http.StatusOK, gin.H{"status": "test ok"})
-}
-
-// handleHealth отвечает на запросы к "/ready", показывает доступность базы данных
-func ready(dbPool *pgxpool.Pool) gin.HandlerFunc {
-	return func(c *gin.Context) {
-
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-
-		err := dbPool.Ping(ctx)
-		if err != nil {
-			logrus.Errorf("Readiness check failed: DB unreachable: %v", err)
-
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status": "not ready",
-				"db":     "down",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ready",
-			"db":     "up",
-		})
-	}
-}
-
-// protected отвечает на запросы к "/protected" защищен oauth2
-func protected(c *gin.Context) {
-	logrus.Info("Protected check request")
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
-
-// getPublicIPv4 — IMDSv2 поддержка для запроса публичного IPv4 EC2
-func getPublicIPv4() string {
-    client := &http.Client{}
-
-    // 1. Получаем IMDSv2 token
-    tokenReq, err := http.NewRequest("PUT", "http://169.254.169.254/latest/api/token", nil)
-    if err != nil {
-        log.Printf("IMDSv2 token request build failed: %v", err)
-        return ""
-    }
-    tokenReq.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "21600")
-
-    tokenResp, err := client.Do(tokenReq)
-    if err != nil {
-        log.Printf("IMDSv2 token request failed: %v", err)
-        return ""
-    }
-    defer tokenResp.Body.Close()
-
-    token, err := ioutil.ReadAll(tokenResp.Body)
-    if err != nil {
-        log.Printf("IMDSv2 token read failed: %v", err)
-        return ""
-    }
-
-    // 2. Делаем запрос public-ipv4 с токеном
-    metaReq, err := http.NewRequest("GET", "http://169.254.169.254/latest/meta-data/public-ipv4", nil)
-    if err != nil {
-        log.Printf("Public IPv4 request build failed: %v", err)
-        return ""
-    }
-    metaReq.Header.Set("X-aws-ec2-metadata-token", string(token))
-
-    metaResp, err := client.Do(metaReq)
-    if err != nil {
-        log.Printf("Public IPv4 request failed: %v", err)
-        return ""
-    }
-    defer metaResp.Body.Close()
-
-    body, err := ioutil.ReadAll(metaResp.Body)
-    if err != nil {
-        log.Printf("Public IPv4 read failed: %v", err)
-        return ""
-    }
-
-    return string(body)
+	log.Println("Server exited cleanly")
 }
