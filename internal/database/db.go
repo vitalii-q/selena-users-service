@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// manually assemble the connection string
+// Manually assemble the connection string
 func GetDatabaseURL() string {
 	dbUser := os.Getenv("USERS_POSTGRES_DB_USER")
 	dbPassword := os.Getenv("USERS_POSTGRES_DB_PASS")
