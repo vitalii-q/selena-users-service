@@ -4,8 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	//"github.com/sirupsen/logrus"
 
-	"github.com/vitalii-q/selena-users-service/internal/handlers"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/vitalii-q/selena-users-service/internal/handlers"
+	"github.com/vitalii-q/selena-users-service/internal/server/middleware"
 )
 
 // SetupRouter initializes Gin router with all routes and middleware
@@ -19,10 +20,9 @@ func SetupRouter(
 	r := gin.New()
 
 	// --- Middleware ---
-	r.Use(gin.Recovery())
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
-		SkipPaths: []string{"/health", "/ready"},
-	}))
+	r.Use(middleware.RequestID())           // add unique request ID
+	r.Use(middleware.Logger())              // logging middleware
+	r.Use(gin.Recovery())                   // panic recovery middleware
 
 	// --- Root & health checks ---
 	r.GET("/", handleRoot)
