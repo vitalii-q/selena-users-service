@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 func handleRoot(c *gin.Context) {
@@ -16,7 +15,6 @@ func handleRoot(c *gin.Context) {
 
 	publicIP := getPublicIPv4()
 
-	logrus.Info("GET / hit")
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Hello, users-service!",
 		"Private_DNS": hostname,
