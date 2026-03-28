@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	//"os"
 
 	"github.com/vitalii-q/selena-users-service/internal/database"
 
@@ -11,6 +12,10 @@ import (
 
 // Clean users table: docker exec -it users-service go run cmd/clean/main.go
 func main() {
+	/*if os.Getenv("APP_ENV") == "production" {
+		log.Fatal("Cleaning users table is not allowed in production")
+	}*/
+
 	dsn := database.GetDatabaseURL()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
