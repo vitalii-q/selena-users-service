@@ -4,6 +4,7 @@ import (
 	"log"
 	//"os"
 
+	"github.com/vitalii-q/selena-users-service/internal/config"
 	"github.com/vitalii-q/selena-users-service/internal/database"
 
 	"gorm.io/driver/postgres"
@@ -16,7 +17,7 @@ func main() {
 		log.Fatal("Cleaning users table is not allowed in production")
 	}*/
 
-	dsn := database.GetDatabaseURL()
+	dsn := database.GetDatabaseURL(config.LoadEnv())
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

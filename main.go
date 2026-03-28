@@ -20,10 +20,10 @@ func main() {
 
 	// --- Bootstrap all dependencies ---
 	deps := bootstrap.NewBootstrap(ctx)
-	defer deps.DBPool.Close()
+	defer deps.DB.Close()
 
 	// --- Router setup ---
-	r := router.SetupRouter(deps.DBPool, deps.UserHandler, deps.AuthHandler, deps.UserHotelsHandler, deps.LocationsHandler)
+	r := router.SetupRouter(deps.DB, deps.UserHandler, deps.AuthHandler, deps.UserHotelsHandler, deps.LocationsHandler)
 
 	// --- HTTP server ---
 	srv := server.StartServer(r)

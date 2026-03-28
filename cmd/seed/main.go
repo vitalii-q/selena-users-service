@@ -1,28 +1,22 @@
 package main
 
 import (
-    "log"
-	"github.com/vitalii-q/selena-users-service/internal/database/seeds"
+	"log"
+
+	"github.com/vitalii-q/selena-users-service/internal/config"
 	"github.com/vitalii-q/selena-users-service/internal/database"
+	"github.com/vitalii-q/selena-users-service/internal/database/seeds"
 	"github.com/vitalii-q/selena-users-service/internal/models"
 
-	"github.com/joho/godotenv"
-
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Run seeds: docker exec -it users-service go run cmd/seed/main.go
 //
 // The order of seeding: hotels, locations (hotels-service) -> users (users-service) -> bookings (bookings-service)
 func main() {
-	// downloud .env
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Printf("Warning: .env file not found, relying on environment variables")
-	}
-
-    dsn := database.GetDatabaseURL()
+    dsn := database.GetDatabaseURL(config.LoadEnv())
     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
     if err != nil {
         log.Fatalf("Failed to connect to DB: %v", err)
