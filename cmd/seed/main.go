@@ -12,7 +12,7 @@ import (
     "gorm.io/gorm"
 )
 
-// run seeds: docker exec -it users-service go run cmd/seed/main.go
+// Run seeds: docker exec -it users-service go run cmd/seed/main.go
 //
 // The order of seeding: hotels, locations (hotels-service) -> users (users-service) -> bookings (bookings-service)
 func main() {

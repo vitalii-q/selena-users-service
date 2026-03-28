@@ -40,7 +40,7 @@ func SetupRouter(
 		api.GET("/users/:id", userHandler.GetUserHandler)
 		api.PUT("/users/:id", userHandler.UpdateUserHandler)
 		api.DELETE("/users/:id", userHandler.DeleteUserHandler)
-		api.GET("/users", userHandler.GetUsersHandler)
+		api.GET("/users", userHandler.GetUsersHandler)    // add ?expand=locations to get user locations
 
 		api.GET("/locations", locationsHandler.GetLocationsHandler)
 	}

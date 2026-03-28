@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	//"log"
 	"time"
 
 	"github.com/vitalii-q/selena-users-service/internal/dto"
@@ -21,6 +22,8 @@ func EnrichUsers(
 	if err != nil {
 		return nil, err
 	}
+
+	//log.Printf("HotelService returned country: %+v", countries[0])
 
 	// Строим map-ы для O(1) lookup
 	countryMap := make(map[string]*string)

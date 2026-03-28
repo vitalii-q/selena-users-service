@@ -200,7 +200,7 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 	expand := c.Query("expand")
 
 	if expand == "locations" {
-		usersResponse, err := h.service.(*services.UserService).GetAllUsersWithLocations()
+		usersWithLocations, err := h.service.(*services.UserService).GetAllUsersWithLocations()
 		if err != nil {
 			logrus.WithError(err).Error("failed to get users with locations")
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -210,8 +210,8 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"users": usersResponse,
-			"count": len(usersResponse),
+			"users": usersWithLocations,
+			"count": len(usersWithLocations),
 		})
 		return
 	}
