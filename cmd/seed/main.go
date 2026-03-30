@@ -13,6 +13,7 @@ import (
 )
 
 // Run seeds: docker exec -it users-service go run cmd/seed/main.go
+// Run seeds in cloud: docker exec -it users-service /app/bin/seed
 //
 // The order of seeding: hotels, locations (hotels-service) -> users (users-service) -> bookings (bookings-service)
 func main() {

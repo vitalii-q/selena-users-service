@@ -12,6 +12,7 @@ import (
 )
 
 // Clean users table: docker exec -it users-service go run cmd/clean/main.go
+// Clean users table in cloud: docker exec -it users-service /app/bin/clean
 func main() {
 	/*if os.Getenv("APP_ENV") == "production" {
 		log.Fatal("Cleaning users table is not allowed in production")

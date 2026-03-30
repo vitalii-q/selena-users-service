@@ -38,8 +38,9 @@ COPY . ./
 
 # Build main binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/main ./main.go
-# Build seed binary
+# Build seed binary (to execute commands)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/seed ./cmd/seed/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/clean ./cmd/clean/main.go
 
 # Installing migrate tool during build
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -64,6 +65,7 @@ COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /app/users-service/db /app/users-service/db
 # Copy the seed binary
 COPY --from=builder /app/bin/seed /app/bin/seed
+COPY --from=builder /app/bin/clean /app/bin/clean
 
 # Copy the entrypoint scripts
 COPY ./_docker /app/users-service/_docker
@@ -71,7 +73,7 @@ COPY ./_docker /app/users-service/_docker
 # Add execution rights
 RUN chmod +x /app/bin/main
 
-RUN chmod +x /app/bin/main /app/bin/seed
+RUN chmod +x /app/bin/main /app/bin/seed /app/bin/clean
 
 # Set the environment variable for the config file
 ENV CONFIG_PATH="/app/users-service/config/config.yaml"
