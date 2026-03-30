@@ -11,6 +11,7 @@ import (
 // The order of seeding: hotels, locations (hotels-service) -> users (users-service) -> bookings (bookings-service)
 func SeedAll(db *gorm.DB) {
     log.Println("🌱 Starting user seeds...")
-    SeedUsers(db) // run seeds
-    log.Println("✅ User seeding completed successfully!")
+    if SeedUsers(db) { // run seeds
+        log.Println("✅ User seeding completed successfully!")
+    }
 }

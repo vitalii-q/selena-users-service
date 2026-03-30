@@ -25,7 +25,17 @@ type AgeRange struct {
 }
 
 // SeedUsers fills the users table with test data
-func SeedUsers(db *gorm.DB) {
+func SeedUsers(db *gorm.DB) bool {
+	empty, err := isUsersTableEmpty(db)
+    if err != nil {
+        log.Printf("Failed to check users table: %v", err)
+        return false
+    }
+    if !empty {
+        log.Println("Users table is not empty, skipping seeding...")
+        return false
+    }
+
 	hasher := utils.NewBcryptHasher()
 
 	// -------------------------------
@@ -81,7 +91,7 @@ func SeedUsers(db *gorm.DB) {
 	adminPasswordHash, err := hasher.HashPassword("password")
 	if err != nil {
 		log.Printf("Failed to hash admin password: %v", err)
-		return
+		return false
 	}
 
 	users = append(users, models.User{
@@ -173,6 +183,17 @@ func SeedUsers(db *gorm.DB) {
 			log.Printf("%d users seeded successfully (single batch insert)", len(users))
 		}
 	}
+
+	return true
+}
+
+// Сhecks if the users table has any records
+func isUsersTableEmpty(db *gorm.DB) (bool, error) {
+	var count int64
+	if err := db.Model(&models.User{}).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count == 0, nil
 }
 
 /*func ptr(s string) {
