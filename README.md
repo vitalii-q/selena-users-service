@@ -192,16 +192,13 @@ Used for communication with other services (e.g. hotels-service)
 ## 🧪 Local Development
 
 #### Run with Docker Compose:
-
 docker-compose up --build
 
 #### Run migrations:
-
 cd users-service/db
 ./migrate.sh
 
 #### Seed database:
-
 go run cmd/seed/main.go
 
 ---
