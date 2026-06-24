@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/vitalii-q/selena-users-service/internal/bootstrap"
+	"github.com/vitalii-q/selena-users-service/internal/metrics"
 	"github.com/vitalii-q/selena-users-service/internal/router"
 	"github.com/vitalii-q/selena-users-service/internal/server"
 	//"github.com/vitalii-q/selena-users-service/internal/logger"
@@ -21,6 +22,9 @@ func main() {
 	// --- Bootstrap all dependencies ---
 	deps := bootstrap.NewBootstrap(ctx)
 	defer deps.DB.Close()
+
+	// --- Metrics (Prometheus + Grafana) ---
+	metrics.Register()
 
 	// --- Router setup ---
 	r := router.SetupRouter(deps.DB, deps.UserHandler, deps.AuthHandler, deps.UserHotelsHandler, deps.LocationsHandler)

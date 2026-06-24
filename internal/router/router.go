@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	//"github.com/sirupsen/logrus"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,15 +21,19 @@ func SetupRouter(
 	r := gin.New()
 
 	// --- Middleware ---
-	r.Use(middleware.RequestID())           // add unique request ID
-	r.Use(middleware.Logger())              // logging middleware
-	r.Use(gin.Recovery())                   // panic recovery middleware
+	r.Use(middleware.RequestID())            // add unique request ID
+	r.Use(middleware.Logger())               // logging middleware
+	r.Use(middleware.PrometheusMiddleware()) // Prometheus metrics middleware
+	r.Use(gin.Recovery())                    // panic recovery middleware
 
 	// --- Root & health checks ---
 	r.GET("/", handleRoot)
 	r.GET("/health", health)
 	r.GET("/ready", ready(dbPool))
 	r.GET("/protected", protected)
+
+	// --- Prometheus metrics endpoint ---
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// --- OAuth ---
 	r.POST("/users/oauth2/authenticate", authHandler.Authenticate)
