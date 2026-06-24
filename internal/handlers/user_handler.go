@@ -17,6 +17,7 @@ import (
 	"github.com/vitalii-q/selena-users-service/internal/models"
 	"github.com/vitalii-q/selena-users-service/internal/services"
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
+	"github.com/vitalii-q/selena-users-service/internal/metrics"
 )
 
 // UserHandler - обработчик HTTP-запросов, связанных с пользователями
@@ -64,6 +65,8 @@ func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	metrics.UsersCreatedTotal.Inc() // Count only successfully created users.
 
 	c.JSON(http.StatusCreated, createdUser)
 }
