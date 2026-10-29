@@ -18,10 +18,10 @@ func NewAuthService(db db_interface) *AuthService {
 	return &AuthService{db: db}
 }
 
-// Генерация авторизационного кода (пока без client_id)
+// Generation of an authorization code (without client_id for now)
 func (s *AuthService) GenerateAuthCode(userID, redirectURI, provider, providerID string) (string, error) {
 	code := generateRandomCode()
-	accessToken := "temporary" // заглушка до этапа получения токена PostToken()
+	accessToken := "temporary" // stub before the token receipt stage PostToken()
 
 	// Добавляем provider в запрос
 	query := `
@@ -35,12 +35,12 @@ func (s *AuthService) GenerateAuthCode(userID, redirectURI, provider, providerID
 	    updated_at = NOW()
 	`
 
-	// Логируем db для отладки
+	// Logging the db for debugging
 	if s.db == nil {
 		logrus.Infof("db!!!: %+v", s.db)
 	}
 
-	// Выполняем запрос с добавлением provider
+	// Logging the db for debugging
 	_, err := s.db.Exec(
 		context.Background(), 
 		query, 
@@ -59,7 +59,7 @@ func (s *AuthService) GenerateAuthCode(userID, redirectURI, provider, providerID
 	return code, nil
 }
 
-// Получение и проверка валидности кода
+// Getting and verifying the validity of the code
 func (s *AuthService) GetAuthCode(code string) (*models.AuthCode, error) {
 	var authCode models.AuthCode
 
@@ -74,19 +74,19 @@ func (s *AuthService) GetAuthCode(code string) (*models.AuthCode, error) {
 		return nil, err
 	}
 
-	// Проверка на истечение срока действия
+	// Checking for expiration
 	if time.Now().After(authCode.ExpiresAt) {
 		return nil, errors.New("authorization code expired")
 	}
 
-	// Удаление использованного кода
+	// Deleting the used code
 	delQuery := `DELETE FROM oauth_sessions WHERE code = $1`
 	_, _ = s.db.Exec(context.Background(), delQuery, code)
 
 	return &authCode, nil
 }
 
-// Генерация случайного кода
+// Generating random code
 func generateRandomCode() string {
 	return uuid.NewString()
 }
