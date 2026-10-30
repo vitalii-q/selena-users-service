@@ -70,7 +70,7 @@ func TestCreateUserHandler(t *testing.T) {
 	passwordHasher := &utils.FixedSaltHasher{}
 	hotelClient := external_services.NewHotelServiceClient()
 	locationsClient := external_services.NewHotelServiceClient()
-	
+
 	userService := services.NewUserService(mockDB, passwordHasher, hotelClient)
 	userHandler := NewUserHandler(userService, locationsClient)
 
@@ -104,6 +104,8 @@ func TestCreateUserHandler(t *testing.T) {
 
 	// Проверяем, что статус 201 Created
 	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.NotContains(t, w.Body.String(), "hashedpassword")
+	assert.NotContains(t, w.Body.String(), "password_hash")
 	mockDB.ExpectationsWereMet()
 }
 
@@ -188,7 +190,7 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 	// Эмуляция ошибки дубликата email в БД
 	mockDB.ExpectQuery(`INSERT INTO users`).
 		WithArgs("John", "Doe", "johndoe@example.com", pgxmock.AnyArg(), "user").
-		WillReturnError(errors.New("duplicate key value violates unique constraint"))
+		WillReturnError(errors.New("duplicate key value violates unique constraint users_email_key (email)"))
 
 	body, _ := json.Marshal(newUser)
 	req, _ := http.NewRequest("POST", "/users", bytes.NewBuffer(body))
@@ -197,8 +199,9 @@ func TestCreateUserHandler_DBError(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "duplicate key value violates unique constraint")
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Contains(t, w.Body.String(), "EMAIL_ALREADY_EXISTS")
+	assert.NotContains(t, w.Body.String(), "duplicate key value violates unique constraint")
 
 	err = mockDB.ExpectationsWereMet()
 	assert.NoError(t, err)
@@ -255,41 +258,41 @@ func TestGetUserHandler_UserNotFound(t *testing.T) {
 }
 
 func TestUpdateUserHandler_Success(t *testing.T) {
-    gin.SetMode(gin.TestMode)
-    router := gin.Default()
-    mockService := new(MockUserService)
-    validator := validator.New() // Создаем валидатор
-    handler := &UserHandler{service: mockService, validator: validator} // Передаем его в хэндлер
-    router.PUT("/users/:id", handler.UpdateUserHandler)
+	gin.SetMode(gin.TestMode)
+	router := gin.Default()
+	mockService := new(MockUserService)
+	validator := validator.New()                                        // Создаем валидатор
+	handler := &UserHandler{service: mockService, validator: validator} // Передаем его в хэндлер
+	router.PUT("/users/:id", handler.UpdateUserHandler)
 
-    userID := uuid.New()
+	userID := uuid.New()
 
-    // Обновленный пользователь, в котором изменяется только FirstName
-    updatedUser := models.User{
-        ID:        userID,
-        FirstName: "Updated", // Только FirstName изменяется
-    }
+	// Обновленный пользователь, в котором изменяется только FirstName
+	updatedUser := models.User{
+		ID:        userID,
+		FirstName: "Updated", // Только FirstName изменяется
+	}
 
-    // Мокируем обновление
-    mockService.On("UpdateUser", userID, updatedUser).Return(updatedUser, nil)
+	// Мокируем обновление
+	mockService.On("UpdateUser", userID, updatedUser).Return(updatedUser, nil)
 
-    // Формируем запрос с обновленными данными
-    body, _ := json.Marshal(updatedUser)
-    req, _ := http.NewRequest("PUT", "/users/"+userID.String(), bytes.NewBuffer(body))
-    req.Header.Set("Content-Type", "application/json")
-    w := httptest.NewRecorder()
+	// Формируем запрос с обновленными данными
+	body, _ := json.Marshal(updatedUser)
+	req, _ := http.NewRequest("PUT", "/users/"+userID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
 
-    // Выполняем запрос
-    router.ServeHTTP(w, req)
+	// Выполняем запрос
+	router.ServeHTTP(w, req)
 
-    // Логируем тело ответа
-    //t.Log("Response Body:", w.Body.String())
+	// Логируем тело ответа
+	//t.Log("Response Body:", w.Body.String())
 
-    // Проверяем, что статус ответа 200 OK
-    assert.Equal(t, http.StatusOK, w.Code)
+	// Проверяем, что статус ответа 200 OK
+	assert.Equal(t, http.StatusOK, w.Code)
 
-    // Проверяем, что вызов был выполнен с правильными параметрами
-    mockService.AssertExpectations(t)
+	// Проверяем, что вызов был выполнен с правильными параметрами
+	mockService.AssertExpectations(t)
 }
 
 func TestUpdateUserHandler_InvalidUUID(t *testing.T) {

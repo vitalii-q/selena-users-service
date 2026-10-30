@@ -19,7 +19,7 @@ import (
 type MockPasswordHasher struct{}
 
 func (m *MockPasswordHasher) HashPassword(password string) (string, error) {
-    return password + "_hashed", nil // Простейшее хеширование для тестов
+	return password + "_hashed", nil // Простейшее хеширование для тестов
 }
 
 // Тест для CreateUser
@@ -83,10 +83,10 @@ func TestGetUser(t *testing.T) {
 	}
 
 	// Ожидаем, что будет вызван SQL-запрос с такими параметрами
-	mock.ExpectQuery(`SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at FROM users WHERE id = \$1`).
-		WithArgs(userID.String()).
-		WillReturnRows(pgxmock.NewRows([]string{"id", "first_name", "last_name", "email", "role", "created_at", "updated_at", "deleted_at"}).
-			AddRow(expectedUser.ID, expectedUser.FirstName, expectedUser.LastName, expectedUser.Email, expectedUser.Role, expectedUser.CreatedAt, expectedUser.UpdatedAt, nil))
+	mock.ExpectQuery(`SELECT id, first_name, last_name, email, role, birth, gender, country_id, city_id, created_at, updated_at, deleted_at FROM users WHERE id = \$1`).
+		WithArgs(userID).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "first_name", "last_name", "email", "role", "birth", "gender", "country_id", "city_id", "created_at", "updated_at", "deleted_at"}).
+			AddRow(expectedUser.ID, expectedUser.FirstName, expectedUser.LastName, expectedUser.Email, expectedUser.Role, nil, nil, nil, nil, expectedUser.CreatedAt, expectedUser.UpdatedAt, nil))
 
 	// Создаем сервис с мокнутым соединением
 	userService := NewUserServiceInterface(mock, nil)
@@ -110,8 +110,8 @@ func TestGetUser_NotFound(t *testing.T) {
 	userID := uuid.New()
 
 	// Ожидаем, что запрос не найдет пользователя
-	mock.ExpectQuery(`SELECT id, first_name, last_name, email, role, created_at, updated_at, deleted_at FROM users WHERE id = \$1`).
-		WithArgs(userID.String()).
+	mock.ExpectQuery(`SELECT id, first_name, last_name, email, role, birth, gender, country_id, city_id, created_at, updated_at, deleted_at FROM users WHERE id = \$1`).
+		WithArgs(userID).
 		WillReturnError(pgx.ErrNoRows)
 
 	userService := NewUserServiceInterface(mock, nil)

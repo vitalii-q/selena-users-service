@@ -12,6 +12,7 @@ func Logger() gin.HandlerFunc {
 	skipPaths := map[string]struct{}{   // map is faster than []string
 		"/health": {},
 		"/ready":  {},
+		"/metrics": {},
 	}
 
 	return func(c *gin.Context) {

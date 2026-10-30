@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 )
 
@@ -18,10 +20,15 @@ func NewUserHotelsHandler(hotelClient *external_services.HotelServiceClient) *Us
 // GET /users/:userId/hotels
 func (h *UserHotelsHandler) GetUserHotelsHandler(c *gin.Context) {
 	userId := c.Param("id")
+	if _, err := uuid.Parse(userId); err != nil {
+		writeUserError(c, http.StatusBadRequest, "INVALID_UUID", "Invalid user ID")
+		return
+	}
 
 	hotels, err := h.hotelClient.GetHotels()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		logrus.WithError(err).Error("failed to get user hotels")
+		writeUserError(c, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
 		return
 	}
 
