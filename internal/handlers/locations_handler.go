@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"github.com/vitalii-q/selena-users-service/internal/services/external_services"
 )
 
@@ -25,9 +26,8 @@ func (h *LocationsHandler) GetLocationsHandler(c *gin.Context) {
 
 	locations, err := h.hotelClient.GetLocations()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		logrus.WithError(err).Error("failed to get locations")
+		writeUserError(c, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
 		return
 	}
 
