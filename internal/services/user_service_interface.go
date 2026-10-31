@@ -18,6 +18,10 @@ type UserServiceInterface interface {
 	HotelClient() *external_services.HotelServiceClient
 }
 
+type PaginatedUserService interface {
+	GetUsersPage(page, size int, sortBy, sortDirection string) ([]models.User, int64, error)
+}
+
 // Constructor for UserServiceImpl
 func NewUserServiceInterface(db db_interface, passwordHasher utils.PasswordHasher) UserServiceInterface {
 	if passwordHasher == nil {
