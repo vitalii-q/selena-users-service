@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	//"strconv"
@@ -221,7 +222,7 @@ func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	// Преобразуем строку в uuid.UUID
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+		writeUserError(c, http.StatusBadRequest, "INVALID_UUID", "Invalid UUID format")
 		return
 	}
 
@@ -249,9 +250,7 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		usersWithLocations, err := h.service.(*services.UserService).GetAllUsersWithLocations()
 		if err != nil {
 			logrus.WithError(err).Error("failed to get users with locations")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "failed to fetch users with locations",
-			})
+			writeUserError(c, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
 			return
 		}
 
@@ -259,6 +258,26 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 			"users": usersWithLocations,
 			"count": len(usersWithLocations),
 		})
+		return
+	}
+	if paginatedService, ok := h.service.(services.PaginatedUserService); ok {
+		page, size, sortBy, sortDirection, err := parsePagination(c)
+		if err != nil {
+			writeUserError(c, http.StatusBadRequest, "VALIDATION_ERROR", err.Error())
+			return
+		}
+		users, total, err := paginatedService.GetUsersPage(page, size, sortBy, sortDirection)
+		if err != nil {
+			logrus.WithError(err).Error("failed to get paginated users")
+			writeUserError(c, http.StatusInternalServerError, "INTERNAL_ERROR", "Internal server error")
+			return
+		}
+		content := make([]dto.UserResponse, 0, len(users))
+		for _, user := range users {
+			content = append(content, dto.MapUser(user))
+		}
+		totalPages := int((total + int64(size) - 1) / int64(size))
+		c.JSON(http.StatusOK, gin.H{"content": content, "total_elements": total, "total_pages": totalPages})
 		return
 	}
 
@@ -278,4 +297,31 @@ func (h *UserHandler) GetUsersHandler(c *gin.Context) {
 		responses = append(responses, dto.MapUser(user))
 	}
 	c.JSON(http.StatusOK, gin.H{"users": responses, "count": len(responses)})
+}
+
+func parsePagination(c *gin.Context) (int, int, string, string, error) {
+	page, size := 0, 20
+	var err error
+	if value := c.Query("page"); value != "" {
+		page, err = strconv.Atoi(value)
+		if err != nil || page < 0 {
+			return 0, 0, "", "", errors.New("page must be greater than or equal to zero")
+		}
+	}
+	if value := c.Query("size"); value != "" {
+		size, err = strconv.Atoi(value)
+		if err != nil || size < 1 || size > 100 {
+			return 0, 0, "", "", errors.New("size must be between 1 and 100")
+		}
+	}
+	sortBy := c.DefaultQuery("sortBy", "created_at")
+	sortDirection := c.DefaultQuery("sortDirection", "desc")
+	allowed := map[string]bool{"id": true, "first_name": true, "last_name": true, "email": true, "role": true, "created_at": true, "updated_at": true}
+	if !allowed[sortBy] {
+		return 0, 0, "", "", errors.New("sortBy is not allowed")
+	}
+	if sortDirection != "asc" && sortDirection != "desc" {
+		return 0, 0, "", "", errors.New("sortDirection must be asc or desc")
+	}
+	return page, size, sortBy, sortDirection, nil
 }

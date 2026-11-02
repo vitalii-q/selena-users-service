@@ -27,6 +27,15 @@ type MockUserService struct {
 	mock.Mock
 }
 
+type paginatedUserServiceStub struct {
+	MockUserService
+	users []models.User
+}
+
+func (s *paginatedUserServiceStub) GetUsersPage(page, size int, sortBy, sortDirection string) ([]models.User, int64, error) {
+	return s.users, int64(len(s.users)), nil
+}
+
 // HotelClient — возвращает nil или фиктивный клиент
 func (m *MockUserService) HotelClient() *external_services.HotelServiceClient {
 	return nil
@@ -320,6 +329,35 @@ func TestUpdateUserHandler_InvalidJSON(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetUsersHandlerPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	userID := uuid.New()
+	service := &paginatedUserServiceStub{users: []models.User{{ID: userID, FirstName: "John", Email: "john@example.com", Password: "secret123"}}}
+	handler := NewUserHandler(service, nil)
+	r := gin.New()
+	r.GET("/users", handler.GetUsersHandler)
+	response := httptest.NewRecorder()
+	r.ServeHTTP(response, httptest.NewRequest("GET", "/users?page=0&size=10&sortBy=email&sortDirection=asc", nil))
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), "content")
+	assert.Contains(t, response.Body.String(), "total_elements")
+	assert.Contains(t, response.Body.String(), "total_pages")
+	assert.NotContains(t, response.Body.String(), "secret123")
+}
+
+func TestGetUsersHandlerRejectsInvalidPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	service := &paginatedUserServiceStub{}
+	handler := NewUserHandler(service, nil)
+	r := gin.New()
+	r.GET("/users", handler.GetUsersHandler)
+	for _, query := range []string{"page=-1", "size=101", "sortBy=password_hash", "sortDirection=invalid"} {
+		response := httptest.NewRecorder()
+		r.ServeHTTP(response, httptest.NewRequest("GET", "/users?"+query, nil))
+		assert.Equal(t, http.StatusBadRequest, response.Code)
+	}
 }
 
 func TestUpdateUserHandler_UserNotFound(t *testing.T) {

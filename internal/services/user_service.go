@@ -22,21 +22,21 @@ import (
 
 // UserServiceImpl - implementation of the user service
 type UserService struct {
-	db db_interface
+	db             db_interface
 	passwordHasher utils.PasswordHasher
-	hotelClient *external_services.HotelServiceClient
+	hotelClient    *external_services.HotelServiceClient
 }
 
 // NewUserServiceImpl - конструктор UserServiceImpl
 func NewUserService(
-	db db_interface, 
-	passwordHasher utils.PasswordHasher, 
+	db db_interface,
+	passwordHasher utils.PasswordHasher,
 	hotelClient *external_services.HotelServiceClient,
 ) *UserService {
 	return &UserService{
-		db: db, 
+		db:             db,
 		passwordHasher: passwordHasher,
-		hotelClient: hotelClient,
+		hotelClient:    hotelClient,
 	}
 }
 
@@ -177,7 +177,7 @@ func (s *UserService) DeleteUser(id uuid.UUID) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return errors.New("user not found") 
+		return errors.New("user not found")
 	}
 
 	return nil
@@ -257,6 +257,58 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+var userSortColumns = map[string]string{
+	"id": "id", "first_name": "first_name", "last_name": "last_name",
+	"email": "email", "role": "role", "created_at": "created_at", "updated_at": "updated_at",
+}
+
+func (s *UserService) GetUsersPage(page, size int, sortBy, sortDirection string) ([]models.User, int64, error) {
+	if page < 0 || size < 1 || size > 100 {
+		return nil, 0, errors.New("invalid pagination parameters")
+	}
+	column, ok := userSortColumns[sortBy]
+	if !ok {
+		return nil, 0, errors.New("invalid sort field")
+	}
+	if sortDirection != "asc" && sortDirection != "desc" {
+		return nil, 0, errors.New("invalid sort direction")
+	}
+	var total int64
+	if err := s.db.QueryRow(context.Background(), "SELECT COUNT(*) FROM users WHERE deleted_at IS NULL").Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	query := `SELECT id, first_name, last_name, email, role, birth, gender, country_id, city_id, created_at, updated_at, deleted_at FROM users WHERE deleted_at IS NULL ORDER BY ` + column + ` ` + sortDirection + ` LIMIT $1 OFFSET $2`
+	rows, err := s.db.Query(context.Background(), query, size, page*size)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	users := make([]models.User, 0)
+	for rows.Next() {
+		var user models.User
+		var gender, countryID, cityID sql.NullString
+		if err := rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Role, &user.Birth, &gender, &countryID, &cityID, &user.CreatedAt, &user.UpdatedAt, &user.DeletedAt); err != nil {
+			return nil, 0, err
+		}
+		if gender.Valid {
+			user.Gender = &gender.String
+		}
+		if countryID.Valid {
+			id, _ := uuid.Parse(countryID.String)
+			user.CountryID = &id
+		}
+		if cityID.Valid {
+			id, _ := uuid.Parse(cityID.String)
+			user.CityID = &id
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return users, total, nil
 }
 
 // GetAllUsersWithLocations — returns all users with country/city names
