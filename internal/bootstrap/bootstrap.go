@@ -15,20 +15,21 @@ import (
 
 // Bootstrap struct holds all services and handlers
 type Bootstrap struct {
-	DB             *pgxpool.Pool
-	UserService        *services.UserService
-	AuthService        *services.AuthService
-	UserHandler        *handlers.UserHandler
-	AuthHandler        *handlers.OAuthHandler
-	UserHotelsHandler  *handlers.UserHotelsHandler
-	LocationsHandler   *handlers.LocationsHandler
+	DB                     *pgxpool.Pool
+	UserService            *services.UserService
+	AuthService            *services.AuthService
+	UserHandler            *handlers.UserHandler
+	AuthHandler            *handlers.OAuthHandler
+	UserHotelsHandler      *handlers.UserHotelsHandler
+	LocationsHandler       *handlers.LocationsHandler
+	UserEligibilityHandler *handlers.UserEligibilityHandler
 }
 
 // NewBootstrap initializes all dependencies and returns Bootstrap struct
 func NewBootstrap(ctx context.Context) *Bootstrap {
 	// --- Configs from .env file ---
 	env := config.LoadEnv()
-	
+
 	// --- Database connection ---
 	DB, err := database.Connect(ctx, env)
 	if err != nil {
@@ -53,14 +54,16 @@ func NewBootstrap(ctx context.Context) *Bootstrap {
 	}
 	userHotelsHandler := handlers.NewUserHotelsHandler(hotelClient)
 	locationsHandler := handlers.NewLocationsHandler(hotelClient)
+	userEligibilityHandler := handlers.NewUserEligibilityHandler(userService)
 
 	return &Bootstrap{
-		DB:            DB,
-		UserService:       userService,
-		AuthService:       authService,
-		UserHandler:       userHandler,
-		AuthHandler:       authHandler,
-		UserHotelsHandler: userHotelsHandler,
-		LocationsHandler:  locationsHandler,
+		DB:                     DB,
+		UserService:            userService,
+		AuthService:            authService,
+		UserHandler:            userHandler,
+		AuthHandler:            authHandler,
+		UserHotelsHandler:      userHotelsHandler,
+		LocationsHandler:       locationsHandler,
+		UserEligibilityHandler: userEligibilityHandler,
 	}
 }

@@ -27,6 +27,11 @@ type UserService struct {
 	hotelClient    *external_services.HotelServiceClient
 }
 
+type BookingEligibility struct {
+	Exists   bool
+	Eligible bool
+}
+
 // NewUserServiceImpl - конструктор UserServiceImpl
 func NewUserService(
 	db db_interface,
@@ -126,6 +131,18 @@ func (s *UserService) GetUser(id uuid.UUID) (models.User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *UserService) GetBookingEligibility(id uuid.UUID) (BookingEligibility, error) {
+	var deletedAt sql.NullTime
+	err := s.db.QueryRow(context.Background(), "SELECT deleted_at FROM users WHERE id = $1", id).Scan(&deletedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return BookingEligibility{Exists: false, Eligible: false}, nil
+	}
+	if err != nil {
+		return BookingEligibility{}, err
+	}
+	return BookingEligibility{Exists: true, Eligible: !deletedAt.Valid}, nil
 }
 
 // GetUserByEmail - receiving a user by email

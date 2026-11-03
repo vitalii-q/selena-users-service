@@ -27,7 +27,7 @@ func main() {
 	metrics.Register()
 
 	// --- Router setup ---
-	r := router.SetupRouter(deps.DB, deps.UserHandler, deps.AuthHandler, deps.UserHotelsHandler, deps.LocationsHandler)
+	r := router.SetupRouter(deps.DB, deps.UserHandler, deps.AuthHandler, deps.UserHotelsHandler, deps.LocationsHandler, deps.UserEligibilityHandler)
 
 	// --- HTTP server ---
 	srv := server.StartServer(r)

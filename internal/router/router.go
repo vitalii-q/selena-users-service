@@ -17,6 +17,7 @@ func SetupRouter(
 	authHandler *handlers.OAuthHandler,
 	userHotelsHandler *handlers.UserHotelsHandler,
 	locationsHandler *handlers.LocationsHandler,
+	userEligibilityHandler *handlers.UserEligibilityHandler,
 ) *gin.Engine {
 	r := gin.New()
 
@@ -45,13 +46,14 @@ func SetupRouter(
 		api.GET("/users/:id", userHandler.GetUserHandler)
 		api.PUT("/users/:id", userHandler.UpdateUserHandler)
 		api.DELETE("/users/:id", userHandler.DeleteUserHandler)
-		api.GET("/users", userHandler.GetUsersHandler)    // add ?expand=locations to get user locations
+		api.GET("/users", userHandler.GetUsersHandler) // add ?expand=locations to get user locations
 
 		api.GET("/locations", locationsHandler.GetLocationsHandler)
 	}
 
 	// --- User Hotels ---
 	r.GET("/users/:id/hotels", userHotelsHandler.GetUserHotelsHandler)
+	r.GET("/internal/users/:id/booking-eligibility", userEligibilityHandler.GetBookingEligibility)
 
 	return r
 }
