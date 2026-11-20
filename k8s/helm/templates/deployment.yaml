@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /app/bin/main
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+          env:
+            - name: PROJECT_SUFFIX
+              value: {{ .Values.app.projectSuffix | quote }}
+            - name: USERS_POSTGRES_DB_HOST
+              value: "{{ .Values.db.host }}"
+            - name: USERS_POSTGRES_DB_PORT_INNER
+              value: "{{ .Values.db.port }}"
+            - name: USERS_POSTGRES_DB_SSLMODE
+              value: {{ .Values.db.sslMode | quote }}
+            - name: USERS_POSTGRES_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: POSTGRES_USER
+            - name: USERS_POSTGRES_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: POSTGRES_PASSWORD
+            - name: USERS_POSTGRES_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: POSTGRES_DB
+            - name: RUN_MODE
+              value: "k8s"
+          envFrom:
+            - configMapRef:
+                name: {{ .Chart.Name }}-config
