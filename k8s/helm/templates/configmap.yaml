@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-config
+  namespace: {{ .Release.Namespace }}
+data:
+  APP_ENV: {{ .Values.app.env | quote }}
+  APP_PORT: {{ .Values.app.port | quote }}
+  USERS_SERVICE_PORT: {{ .Values.app.port | quote }}
+  USERS_POSTGRES_DB_HOST: {{ .Values.db.host | quote }}
+  USERS_POSTGRES_DB_PORT_INNER: {{ .Values.db.port | quote }}
+  USERS_POSTGRES_DB_SSLMODE: {{ .Values.db.sslMode | quote }}

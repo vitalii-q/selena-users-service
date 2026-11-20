@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: users-db-init
+  namespace: selena-dev
+  labels:
+    app.kubernetes.io/name: users-service
+    app.kubernetes.io/component: database-init
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: users-service
+        app.kubernetes.io/component: database-init
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: database-init
+          image: selena-users-service:amd64
+          imagePullPolicy: Never
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              attempt=0
+              until PGPASSWORD="$USERS_POSTGRES_DB_PASS" PGSSLMODE="$USERS_POSTGRES_DB_SSLMODE" psql -h "$USERS_POSTGRES_DB_HOST" -p "$USERS_POSTGRES_DB_PORT_INNER" -U "$USERS_POSTGRES_DB_USER" -d "$USERS_POSTGRES_DB_NAME" -v ON_ERROR_STOP=1 -c "SELECT 1;" >/dev/null 2>&1; do
+                attempt=$((attempt + 1))
+                if [ "$attempt" -ge 60 ]; then
+                  echo "PostgreSQL did not become ready before the retry limit."
+                  exit 1
+                fi
+                sleep 2
+              done
+              export PGSSLMODE="$USERS_POSTGRES_DB_SSLMODE"
+              export LOCALHOST="$USERS_POSTGRES_DB_HOST"
+              export USERS_POSTGRES_DB_PORT="$USERS_POSTGRES_DB_PORT_INNER"
+              sh /app/users-service/db/migrate.sh
+              exec /app/bin/seed
+          envFrom:
+            - configMapRef:
+                name: users-config
+          env:
+            - name: USERS_POSTGRES_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: users-db-secret
+                  key: POSTGRES_USER
+            - name: USERS_POSTGRES_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: users-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: USERS_POSTGRES_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: users-db-secret
+                  key: POSTGRES_DB
+            - name: USERS_POSTGRES_DB_SSLMODE
+              value: "disable"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
