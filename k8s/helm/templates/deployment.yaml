@@ -4,16 +4,19 @@ metadata:
   name: {{ .Chart.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Chart.Name }}
+    {{- include "users-service.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Chart.Name }}
+      app.kubernetes.io/name: {{ .Chart.Name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: application
   template:
     metadata:
       labels:
-        app: {{ .Chart.Name }}
+        {{- include "users-service.labels" . | nindent 8 }}
+        app.kubernetes.io/component: application
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -33,8 +36,6 @@ spec:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
           env:
-            - name: PROJECT_SUFFIX
-              value: {{ .Values.app.projectSuffix | quote }}
             - name: USERS_POSTGRES_DB_HOST
               value: "{{ .Values.db.host }}"
             - name: USERS_POSTGRES_DB_PORT_INNER
@@ -61,3 +62,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ .Chart.Name }}-config
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - PGPASSWORD="$USERS_POSTGRES_DB_PASS" PGSSLMODE="$USERS_POSTGRES_DB_SSLMODE" psql -h "$USERS_POSTGRES_DB_HOST" -p "$USERS_POSTGRES_DB_PORT_INNER" -U "$USERS_POSTGRES_DB_USER" -d "$USERS_POSTGRES_DB_NAME" -v ON_ERROR_STOP=1 -c "SELECT 1;" >/dev/null
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
