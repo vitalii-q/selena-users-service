@@ -6,4 +6,4 @@ The local Kubernetes application connects to the existing Selena Docker PostgreS
 
 The base application resources target namespace `selena-dev` and use a ClusterIP Service. The Deployment uses one replica; the plan scales it only during the later service-balancing exercise. A one-shot migration/seed Job runs before the Deployment so application Pod restarts do not rerun migrations.
 
-The `k8s/local/` directory contains Minikube-only settings and temporary storage exercises. Keep these separate from portable chart templates. Cloud endpoints will be supplied as values in a future, out-of-scope AWS stage.
+The base manifests and chart do not create a database, PVC, Ingress, or cloud resource. The chart's image pull policy is set for the preloaded local Minikube image; a future registry workflow can supply different image values without changing application code.
