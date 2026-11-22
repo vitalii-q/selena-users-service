@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: users-pvc-reader
+  namespace: selena-dev
+  labels:
+    app.kubernetes.io/name: users-service
+    app.kubernetes.io/component: storage-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: marker
+      image: busybox:1.36.1
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - test "$(cat /data/marker)" = 'selena-pvc-marker-v1' && echo 'Marker persisted after Pod recreation.'
+      volumeMounts:
+        - name: test-data
+          mountPath: /data
+  volumes:
+    - name: test-data
+      persistentVolumeClaim:
+        claimName: users-pvc-test-data
