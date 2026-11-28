@@ -4,7 +4,7 @@ metadata:
   name: users-service
   namespace: selena-dev
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: users-service
     app.kubernetes.io/component: application
