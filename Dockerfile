@@ -37,13 +37,13 @@ RUN go mod tidy
 COPY . ./
 
 # Build main binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/main ./main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -x -v -o /app/bin/main ./main.go
 # Build seed binary (to execute commands)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/seed ./cmd/seed/main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/bin/clean ./cmd/clean/main.go
 
 # Installing migrate tool during build
-RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
 
 # Stage 2: Final image
 FROM golang:1.24.0-alpine AS final

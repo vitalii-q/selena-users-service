@@ -57,7 +57,7 @@ spec:
                 name: users-config
           startupProbe:
             httpGet:
-              path: /test
+              path: /health
               port: http
               scheme: HTTP
             periodSeconds: 5
@@ -65,7 +65,7 @@ spec:
             failureThreshold: 12
           livenessProbe:
             httpGet:
-              path: /test
+              path: /health
               port: http
               scheme: HTTP
             periodSeconds: 10
